@@ -9,5 +9,5 @@ Clone the repo and run `poetry install`.  Activate the virtualenv created by run
 Finally, run your app:
 
 ```bash
-streamlit run Home.py
+streamlit run 🏠_Home.py
 ```

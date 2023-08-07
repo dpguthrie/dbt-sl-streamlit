@@ -8,7 +8,7 @@
             "program": ".venv/bin/streamlit",
             "args": [
                 "run",
-                "Home.py"
+                "🏠_Home.py"
             ],
             "justMyCode": true,
         }
