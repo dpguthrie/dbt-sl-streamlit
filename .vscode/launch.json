@@ -1,0 +1,16 @@
+{
+    "version": "0.1.0",
+    "configurations": [
+        {
+            "name": "debug streamlit",
+            "type": "python",
+            "request": "launch",
+            "program": ".venv/bin/streamlit",
+            "args": [
+                "run",
+                "Home.py"
+            ],
+            "justMyCode": true,
+        }
+    ]
+    }
