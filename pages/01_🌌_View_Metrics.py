@@ -116,7 +116,7 @@ if len(unique_dimensions) > 0:
         )
 
 # Add sections for filtering and ordering
-with st.expander('Filtering:'):
+with st.expander('Filtering:', expanded=True):
     if st.session_state.where_items == 0:
         st.button('Add Filters', on_click=add_where_state, key='static_filter_add')
     else:
@@ -158,7 +158,7 @@ with st.expander('Filtering:'):
 valid_orders = (
     st.session_state.selected_metrics + st.session_state.selected_dimensions
 )
-with st.expander('Ordering:'):
+with st.expander('Ordering:', expanded=True):
     if st.session_state.order_items == 0:
         st.button('Add Ordering', on_click=add_order_state, key='static_order_add')
     else:    
