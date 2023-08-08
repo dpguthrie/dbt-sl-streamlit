@@ -25,7 +25,7 @@ def prepare_df(query: str, what: str):
 
 
 st.set_page_config(
-    page_title="dbt Cloud Semantic Layer",
+    page_title="dbt Semantic Layer - Home",
     page_icon="👋",
     
 )

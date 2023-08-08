@@ -3,7 +3,7 @@ import plotly.express as px
 import streamlit as st
 
 st.set_page_config(
-    page_title='Semantic Layer Explorer - View Metrics',
+    page_title='dbt Semantic Layer - View Metrics',
     page_icon='🌌',
     layout='wide',
 )
