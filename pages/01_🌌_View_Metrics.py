@@ -96,6 +96,7 @@ col2.multiselect(
     placeholder='Select a dimension'
 )
 
+# Only add grain if a time dimension has been selected
 if len(unique_dimensions) > 0:
     dimension_types = set([
         st.session_state.dimension_dict[dim]['type'].lower()
@@ -113,7 +114,8 @@ if len(unique_dimensions) > 0:
             ),
             key='selected_grain',
         )
-        
+
+# Add sections for filtering and ordering
 with st.expander('Filtering:'):
     if st.session_state.where_items == 0:
         st.button('Add Filters', on_click=add_where_state, key='static_filter_add')
@@ -219,74 +221,21 @@ if st.button('Submit Query'):
             st.stop()
         else:
             df.columns = [col.lower() for col in df.columns]
-            st.session_state.slq = slq
-            st.session_state.df = df
-
-if 'df' in st.session_state:
-    df = st.session_state.df
+    
     if st.session_state.selected_explain:
-        try:
-            sql = df.iloc[0]['sql']
-        except KeyError:
-            st.warning('Re-run query to see output from explain.')
-        else:
-            st.code(sql)
-            
-    elif 'sql' not in df.columns:
+        st.code(df.iloc[0]['sql'])
+    else:
         with st.expander('View Raw Data:'):
-            st.write(st.session_state.df)
+            st.write(df)
 
         with st.expander('View Chart:', expanded=True):
-            
-            col1, col2, col3 = st.columns(3)
-
-            has_time = len(st.session_state.slq._time_dimensions) > 0
-            has_dimensions = len(st.session_state.slq._group_by) > 0
-            chart_type = 'line' if has_time else 'bar'
-
-            col1.selectbox(
-                label='X Axis',
-                options=(
-                    st.session_state.slq._time_dimensions if has_time else st.session_state.slq._group_by
-                ),
-                key='x_axis',
-                help='Select a field to use for the X axis'
-            )
-
-            col2.multiselect(
-                label='Y Axis',
-                options=st.session_state.slq.metrics,
-                default=st.session_state.slq.metrics[0],
-                key='y_axis',
-                help='Select a field to use for the Y axis',
-            )
-            
-            chart_color = None
-            if len(st.session_state.slq._group_by) > 1:
-                options = [
-                    dim for dim in st.session_state.slq._group_by
-                    if dim != st.session_state.x_axis
-                ]
-                chart_color = col3.multiselect(
-                    label='Color',
-                    options=options,
-                    default=options[0],
-                    key='color',
-                    help='Select a field to use for the color',
+            has_time_dimension = len(slq._time_dimensions) > 0
+            if has_time_dimension:
+                df.set_index(slq._time_dimensions[0], inplace=True)
+            else:
+                df['combined'] = df.apply(
+                    lambda row: '|'.join(str(row[col]) for col in slq._group_by), axis=1
                 )
-
-            chart_config = {
-                'x': st.session_state.x_axis,
-                'y': st.session_state.y_axis,
-            }
-            
-            if chart_color is not None:
-                chart_config['color'] = chart_color
-
-            has_order = any(['order_column' in key for key in st.session_state.keys()])
-            
-            if not has_order and has_dimensions:
-                df = df.sort_values(by=st.session_state.x_axis)
-                
-            fig = getattr(px, chart_type)(df, **chart_config)
-            st.plotly_chart(fig, theme='streamlit', use_container_width=True)
+                df.set_index('combined', inplace=True)
+            chart_type = 'line_chart' if has_time_dimension else 'bar_chart'
+            getattr(st, chart_type)(df, y=slq.metrics)
