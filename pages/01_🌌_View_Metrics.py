@@ -103,11 +103,12 @@ if len(unique_dimensions) > 0:
         for dim in st.session_state.selected_dimensions
     ])
     if 'time' in dimension_types:
+        col1, col2 = st.columns(2)
         grains = [
             st.session_state.metric_dict[metric]['queryable_granularities']
             for metric in st.session_state.selected_metrics
         ]
-        st.selectbox(
+        col2.selectbox(
             label='Select Grain',
             options=sort_by_time_length(
                 [g.strip().lower() for g in get_shared_elements(grains)]
