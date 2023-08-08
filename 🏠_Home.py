@@ -35,7 +35,7 @@ st.markdown(
     """
     Use this app to query and view the metrics defined in your dbt project. It's important to note that this app assumes that you're using the new
     Semantic Layer, powered by [MetricFlow](https://docs.getdbt.com/docs/build/about-metricflow).  The previous semantic layer used the `dbt_metrics`
-    package, which has been deprecated and is no longer supported for `dbt-core>1.6`.
+    package, which has been deprecated and is no longer supported for `dbt-core>=1.6`.
     
     ---
     
