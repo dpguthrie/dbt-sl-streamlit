@@ -8,7 +8,7 @@ from helpers import keys_exist_in_dict
 class SemanticLayerQuery:
     def __init__(self, state: Dict):
         self.state = state
-        self._time_dimensions = set()
+        self._time_dimensions = []
         self._format_metrics()
         self._format_dimensions()
         self._format_filters()
@@ -22,7 +22,9 @@ class SemanticLayerQuery:
         
         is_time_dimension = dim_type.lower() == 'time'
         if is_time_dimension:
-            self._time_dimensions.add(f'{dimension}__{self.state.selected_grain}')
+            dim = f'{dimension}__{self.state.selected_grain}'
+            if dim not in self._time_dimensions:
+                self._time_dimensions.append(dim)
         return is_time_dimension
         
     def _format_metrics(self) -> None:
