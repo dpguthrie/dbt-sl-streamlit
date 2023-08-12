@@ -8,7 +8,7 @@ st.set_page_config(
     layout='wide',
 )
 
-if 'conn' not in st.session_state:
+if 'conn' not in st.session_state or st.session_state.conn is None:
     st.warning('Go to home page and enter your JDBC URL')
     st.stop()
  
@@ -117,7 +117,7 @@ if len(unique_dimensions) > 0:
         )
 
 # Add sections for filtering and ordering
-with st.expander('Filtering:', expanded=True):
+with st.expander('Filtering:'):
     if st.session_state.where_items == 0:
         st.button('Add Filters', on_click=add_where_state, key='static_filter_add')
     else:
@@ -159,7 +159,7 @@ with st.expander('Filtering:', expanded=True):
 valid_orders = (
     st.session_state.selected_metrics + st.session_state.selected_dimensions
 )
-with st.expander('Ordering:', expanded=True):
+with st.expander('Ordering:'):
     if st.session_state.order_items == 0:
         st.button('Add Ordering', on_click=add_order_state, key='static_order_add')
     else:    
@@ -215,13 +215,8 @@ if st.button('Submit Query'):
         st.stop()
     
     with st.spinner('Submitting Query...'):
-        try:
-            df = submit_query(st.session_state.conn, query)
-        except Exception as e:
-            st.error(e)
-            st.stop()
-        else:
-            df.columns = [col.lower() for col in df.columns]
+        df = submit_query(st.session_state.conn, query, True)
+        df.columns = [col.lower() for col in df.columns]
     
     if st.session_state.selected_explain:
         st.code(df.iloc[0]['sql'])

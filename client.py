@@ -20,18 +20,22 @@ def get_connection_attributes(uri):
     """Helper function to convert the JDBC url into ConnAttr."""
     parsed = urlparse(uri)
     params = {k.lower(): v[0] for k, v in parse_qs(parsed.query).items()}
-    return ConnAttr(
-        host=parsed.path.replace("arrow-flight-sql", "grpc")
-        if params.pop("useencryption", None) == "false"
-        else parsed.path.replace("arrow-flight-sql", "grpc+tls"),
-        params=params,
-        auth_header=f"Bearer {params.pop('token')}",
-    )
-
+    try:
+        token = params.pop('token')
+    except KeyError:
+        st.error('Token is missing from the JDBC URL.')
+    else:
+        return ConnAttr(
+            host=parsed.path.replace("arrow-flight-sql", "grpc")
+            if params.pop("useencryption", None) == "false"
+            else parsed.path.replace("arrow-flight-sql", "grpc+tls"),
+            params=params,
+            auth_header=f"Bearer {token}",
+        )
 
 
 @st.cache_data(show_spinner=False)
-def submit_query(_conn_attr: ConnAttr, query: str):
+def submit_query(_conn_attr: ConnAttr, query: str, stop_on_error: bool = False):
     with connect(
         _conn_attr.host,
         db_kwargs={
@@ -42,10 +46,14 @@ def submit_query(_conn_attr: ConnAttr, query: str):
             },
         },
     ) as conn, conn.cursor() as cur:
-        cur.execute(query)
-        df = cur.fetch_df()  # fetches as Pandas DF, can also do fetch_arrow_table
-    
-    return df
+        try:
+            cur.execute(query)
+        except Exception as e:
+            st.error(f'There was an error executing the query:\n\n"{query}"\n\nError message: {e}')
+            if stop_on_error:
+                st.stop()
+        else:
+            return cur.fetch_df()  # fetches as Pandas DF, can also do fetch_arrow_table
 
 
 if __name__ == "__main__":

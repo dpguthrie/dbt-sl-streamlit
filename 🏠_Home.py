@@ -15,13 +15,48 @@ from {{
 }}
 '''
 
+DIMENSIONS_QUERY = '''
+select *
+from {{{{
+    semantic_layer.dimensions(
+        metrics={metrics}
+    )
+}}}}
+'''
 
-def prepare_df(query: str, what: str):
-    with st.spinner(f'Gathering {what.capitalize()}...'):
-        df = submit_query(st.session_state.conn, query)
-        df.columns = [col.lower() for col in df.columns]
-        df.set_index(keys='name', inplace=True)
-    return df
+        
+def prepare_app():
+    
+    def _prepare_df(query: str, what: str):
+        with st.spinner(f'Gathering {what.capitalize()}...'):
+            df = submit_query(st.session_state.conn, query)
+            if df is not None:
+                df.columns = [col.lower() for col in df.columns]
+                df.set_index(keys='name', inplace=True)
+                return df    
+        
+    metric_df = _prepare_df(METRICS_QUERY, 'metrics')
+    if metric_df is not None:
+        metric_df['dimensions'] = metric_df['dimensions'].str.split(', ')
+        metric_df['queryable_granularities'] = (
+            metric_df['queryable_granularities'].str.split(', ')
+        )
+        metric_df['type_params'] = metric_df['type_params'].apply(
+            lambda x: json.loads(x) if x else None
+        )
+        st.session_state.metric_dict = metric_df.to_dict(orient='index')
+        dimension_df = _prepare_df(
+            DIMENSIONS_QUERY.format(
+                **{'metrics': list(st.session_state.metric_dict.keys())}
+            ),
+            'dimensions'
+        )
+        dimension_df['type_params'] = dimension_df['type_params'].apply(
+            lambda x: json.loads(x) if x else None
+        )
+        dimension_df = dimension_df[~dimension_df.index.duplicated(keep='first')]
+        st.session_state.dimension_dict = dimension_df.to_dict(orient='index')
+        st.success('Success!  Explore the rest of the app!')
 
 
 st.set_page_config(
@@ -40,6 +75,7 @@ st.markdown(
     ---
     
     To get started, input your `JDBC_URL` below.  You can find this in your project settings when setting up the Semantic Layer.
+    After hitting Enter, wait until a success message appears indicating that the application has successfully retrieved your project's metrics information.
     """
 )
 
@@ -50,6 +86,12 @@ jdbc_url = st.text_input(
     key='jdbc_url',
     help='JDBC URL is found when configuring the semantic layer at the project level',
 )
+
+if st.session_state.jdbc_url != '':
+    st.cache_data.clear()
+    st.session_state.conn = get_connection_attributes(st.session_state.jdbc_url)
+    if 'conn' in st.session_state and st.session_state.conn is not None:
+        prepare_app()
 
 st.markdown(
     """
@@ -62,30 +104,3 @@ st.markdown(
     - View the [Semantic Layer API](https://docs.getdbt.com/docs/dbt-cloud-apis/sl-api-overview)
 """
 )
-
-
-
-if st.session_state.jdbc_url != '':
-    st.cache_data.clear()
-    st.session_state.conn = get_connection_attributes(st.session_state.jdbc_url)
-    metric_df = prepare_df(METRICS_QUERY, 'metrics')    
-    metric_df['dimensions'] = metric_df['dimensions'].str.split(', ')
-    metric_df['queryable_granularities'] = metric_df['queryable_granularities'].str.split(', ')
-    metric_df['type_params'] = metric_df['type_params'].apply(
-        lambda x: json.loads(x) if x else None
-    )
-    st.session_state.metric_dict = metric_df.to_dict(orient='index')
-    
-    dimensions_query = f'''
-    select *
-    from {{{{
-        semantic_layer.dimensions(metrics={list(st.session_state.metric_dict.keys())})
-    }}}}
-    '''
-    dimension_df = prepare_df(dimensions_query, 'dimensions')
-    dimension_df['type_params'] = dimension_df['type_params'].apply(
-        lambda x: json.loads(x) if x else None
-    )
-    dimension_df = dimension_df[~dimension_df.index.duplicated(keep='first')]
-    st.session_state.dimension_dict = dimension_df.to_dict(orient='index')
-    st.success('Success!  Explore the rest of the app!')
