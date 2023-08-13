@@ -6,23 +6,7 @@ import streamlit as st
 
 # first party
 from client import get_connection_attributes, submit_query
-
-
-METRICS_QUERY = '''
-select *
-from {{
-    semantic_layer.metrics()
-}}
-'''
-
-DIMENSIONS_QUERY = '''
-select *
-from {{{{
-    semantic_layer.dimensions(
-        metrics={metrics}
-    )
-}}}}
-'''
+from jdbc_api import queries
 
         
 def prepare_app():
@@ -35,7 +19,7 @@ def prepare_app():
                 df.set_index(keys='name', inplace=True)
                 return df    
         
-    metric_df = _prepare_df(METRICS_QUERY, 'metrics')
+    metric_df = _prepare_df(queries['metrics'], 'metrics')
     if metric_df is not None:
         metric_df['dimensions'] = metric_df['dimensions'].str.split(', ')
         metric_df['queryable_granularities'] = (
@@ -46,7 +30,7 @@ def prepare_app():
         )
         st.session_state.metric_dict = metric_df.to_dict(orient='index')
         dimension_df = _prepare_df(
-            DIMENSIONS_QUERY.format(
+            queries['dimensions'].format(
                 **{'metrics': list(st.session_state.metric_dict.keys())}
             ),
             'dimensions'
