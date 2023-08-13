@@ -734,7 +734,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-ena
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.9,<3.9.7 || >3.9.7,<4.0"
-content-hash = "2b90d6b47d8ff83557e22602acbfa6b14ca501917be7210dd5389f7840f0992f"
+content-hash = "210ea2c54ede2fba014b23962b8acc30798347ff590dcae3101c72f8c61091f9"
 
 [metadata.files]
 adbc-driver-flightsql = []

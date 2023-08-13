@@ -11,6 +11,7 @@ streamlit = "^1.25.0"
 adbc-driver-flightsql = "^0.5.1"
 dbtc = "^0.5.2"
 plotly = "^5.15.0"
+requests = "^2.31.0"
 
 [tool.poetry.dev-dependencies]
 
