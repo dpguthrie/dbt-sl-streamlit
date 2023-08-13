@@ -108,7 +108,7 @@ if len(unique_dimensions) > 0:
             st.session_state.metric_dict[metric]['queryable_granularities']
             for metric in st.session_state.selected_metrics
         ]
-        col2.selectbox(
+        col1.selectbox(
             label='Select Grain',
             options=sort_by_time_length(
                 [g.strip().lower() for g in get_shared_elements(grains)]
@@ -221,17 +221,17 @@ if st.button('Submit Query'):
     if st.session_state.selected_explain:
         st.code(df.iloc[0]['sql'])
     else:
-        with st.expander('View Raw Data:'):
-            st.write(df)
+        tab1, tab2, = st.tabs(['Data', 'Chart'])
+        with tab1:
+            st.dataframe(df, use_container_width=True)
 
-        with st.expander('View Chart:', expanded=True):
-            has_time_dimension = len(slq._time_dimensions) > 0
-            if has_time_dimension:
-                df.set_index(slq._time_dimensions[0], inplace=True)
+        with tab2:
+            if slq.has_time_dimension:
+                df.set_index(slq._dimensions['time'][0], inplace=True)
             else:
                 df['combined'] = df.apply(
-                    lambda row: '|'.join(str(row[col]) for col in slq._group_by), axis=1
+                    lambda row: ' | '.join(str(row[col]) for col in slq._group_by), axis=1
                 )
                 df.set_index('combined', inplace=True)
-            chart_type = 'line_chart' if has_time_dimension else 'bar_chart'
-            getattr(st, chart_type)(df, y=slq.metrics)
+            chart_type = 'line_chart' if slq.has_time_dimension else 'bar_chart'
+            getattr(st, chart_type)(df, y=slq._metrics)
