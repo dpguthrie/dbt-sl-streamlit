@@ -227,11 +227,11 @@ if st.button('Submit Query'):
 
         with tab2:
             if slq.has_time_dimension:
-                df.set_index(slq._dimensions['time'][0], inplace=True)
+                df.set_index(slq.dimensions['time'][0], inplace=True)
             else:
                 df['combined'] = df.apply(
                     lambda row: ' | '.join(str(row[col]) for col in slq._group_by), axis=1
                 )
                 df.set_index('combined', inplace=True)
             chart_type = 'line_chart' if slq.has_time_dimension else 'bar_chart'
-            getattr(st, chart_type)(df, y=slq._metrics)
+            getattr(st, chart_type)(df, y=slq.metrics)
