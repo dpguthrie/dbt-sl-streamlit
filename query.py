@@ -8,32 +8,51 @@ from helpers import keys_exist_in_dict
 class SemanticLayerQuery:
     def __init__(self, state: Dict):
         self.state = state
-        self._time_dimensions = []
+        self._dimensions = {}
+        self._classify_dimensions()
         self._format_metrics()
         self._format_dimensions()
         self._format_filters()
         self._format_order_by()
         
-    def _is_time_dimension(self, dimension: str):
+    @property
+    def has_time_dimension(self):
+        return 'time' in self._dimensions.keys()
+    
+    @property
+    def has_entity_dimension(self):
+        return 'entity' in self._dimensions.keys()
+    
+    @property
+    def has_categorical_dimension(self):
+        return 'categorical' in self._dimensions.keys()
+    
+    def _is_dim_type(self, dimension_type, dimension):
         try:
-            dim_type = self.state.dimension_dict[dimension]['type']
+            return dimension_type.lower() == self.state.dimension_dict[dimension]['type'].lower()
         except KeyError:
             return False
         
-        is_time_dimension = dim_type.lower() == 'time'
-        if is_time_dimension:
-            dim = f'{dimension}__{self.state.selected_grain}'
-            if dim not in self._time_dimensions:
-                self._time_dimensions.append(dim)
-        return is_time_dimension
+    def _classify_dimensions(self):
+        for dimension in self.state.selected_dimensions:
+            try:
+                dim_type = self.state.dimension_dict[dimension]['type'].lower()
+            except KeyError:
+                pass
+            else:
+                if dim_type not in self._dimensions:
+                    self._dimensions[dim_type] = []
+                if dim_type == 'time':
+                    dimension = f'{dimension}__{self.state.selected_grain}'
+                self._dimensions[dim_type].append(dimension)
         
     def _format_metrics(self) -> None:
-        self.metrics = self.state.selected_metrics
+        self._metrics = self.state.selected_metrics
     
     def _format_dimensions(self) -> None:
         formatted_dimensions = []
         for dim in self.state.selected_dimensions:
-            if self._is_time_dimension(dim):
+            if self._is_dim_type('time', dim):
                 formatted_dimensions.append(
                     f'{dim}__{self.state.selected_grain}'
                 )
@@ -55,8 +74,10 @@ class SemanticLayerQuery:
         filters = self._create_list_of_lists('where', ['column', 'operator', 'condition'])
         formatted_filters = []
         for column, operator, condition in filters:
-            if self._is_time_dimension(column):
-                dim_class = f"TimeDimension('{column}', '{self.state.selected_grain.upper()}')"
+            if self._is_dim_type('time', column):
+                dim_class = f"TimeDimension('{column}', '{self.state.get('selected_grain', 'day').upper()}')"
+            elif self._is_dim_type('entity', column):
+                dim_class = f"Entity('{column}')"
             else:
                 dim_class = f"Dimension('{column}')"
             formatted_filters.append(
@@ -68,7 +89,7 @@ class SemanticLayerQuery:
         orders = self._create_list_of_lists('order', ['column', 'direction'])
         formatted_orders = []
         for column, direction in orders:
-            if self._is_time_dimension(column):
+            if self._is_dim_type('time', column):
                 column = f'{column}__{self.state.selected_grain}'
             if direction.lower() == 'desc':
                 formatted_orders.append(f'-{column}')
@@ -78,7 +99,7 @@ class SemanticLayerQuery:
         
     @property
     def _query_inner(self):
-        text = f'metrics={self.metrics}'
+        text = f'metrics={self._metrics}'
         if len(self._group_by) > 0:
             text += f',\n        group_by={self._group_by}'
         if len(self._where) > 0:
