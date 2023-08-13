@@ -1,4 +1,5 @@
 # stdlib
+from itertools import chain
 from typing import Dict, List
 
 # first party
@@ -8,24 +9,30 @@ from helpers import keys_exist_in_dict
 class SemanticLayerQuery:
     def __init__(self, state: Dict):
         self.state = state
-        self._dimensions = {}
         self._classify_dimensions()
         self._format_metrics()
         self._format_dimensions()
         self._format_filters()
         self._format_order_by()
         
+    def _has_type_dimension(self, dim_type: str):
+        return dim_type in self.dimensions.keys()
+        
     @property
     def has_time_dimension(self):
-        return 'time' in self._dimensions.keys()
+        return self._has_type_dimension('time')
     
     @property
     def has_entity_dimension(self):
-        return 'entity' in self._dimensions.keys()
+        return self._has_type_dimension('entity')
     
     @property
     def has_categorical_dimension(self):
-        return 'categorical' in self._dimensions.keys()
+        return self._has_type_dimension('categorical')
+    
+    @property
+    def all_dimensions(self):
+        return list(chain.from_iterable(self.dimensions.values()))
     
     def _is_dim_type(self, dimension_type, dimension):
         try:
@@ -34,20 +41,21 @@ class SemanticLayerQuery:
             return False
         
     def _classify_dimensions(self):
+        self.dimensions = {}
         for dimension in self.state.selected_dimensions:
             try:
                 dim_type = self.state.dimension_dict[dimension]['type'].lower()
             except KeyError:
                 pass
             else:
-                if dim_type not in self._dimensions:
-                    self._dimensions[dim_type] = []
+                if dim_type not in self.dimensions:
+                    self.dimensions[dim_type] = []
                 if dim_type == 'time':
                     dimension = f'{dimension}__{self.state.selected_grain}'
-                self._dimensions[dim_type].append(dimension)
+                self.dimensions[dim_type].append(dimension)
         
     def _format_metrics(self) -> None:
-        self._metrics = self.state.selected_metrics
+        self.metrics = self.state.selected_metrics
     
     def _format_dimensions(self) -> None:
         formatted_dimensions = []
@@ -99,7 +107,7 @@ class SemanticLayerQuery:
         
     @property
     def _query_inner(self):
-        text = f'metrics={self._metrics}'
+        text = f'metrics={self.metrics}'
         if len(self._group_by) > 0:
             text += f',\n        group_by={self._group_by}'
         if len(self._where) > 0:
