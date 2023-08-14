@@ -227,9 +227,10 @@ if st.button('Submit Query'):
         df.columns = [col.lower() for col in df.columns]
         st.session_state.slq = slq
         st.session_state.df = df
+        st.session_state.explain = st.session_state.selected_explain
 
 if 'df' in st.session_state and 'slq' in st.session_state:
-    if st.session_state.selected_explain:
+    if st.session_state.explain:
         st.code(st.session_state.df.iloc[0]['sql'])
     else:
         with st.expander('View Chart', expanded=True):
