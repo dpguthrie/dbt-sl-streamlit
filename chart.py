@@ -152,7 +152,7 @@ def create_chart(df, slq: SemanticLayerQuery):
         if _can_add_field(selected_dimensions, slq.all_dimensions) and field == 'facet_col':
             facet_col = col1.selectbox(
                 label='Facet Column',
-                options=_available_options(selected_dimensions, slq.all_dimensions),
+                options=[None] + _available_options(selected_dimensions, slq.all_dimensions),
                 placeholder='Select Facet Column',
                 key='chart_config_facet_col',
             )
@@ -161,7 +161,7 @@ def create_chart(df, slq: SemanticLayerQuery):
         if _can_add_field(selected_dimensions, slq.all_dimensions) and field == 'facet_row':
             facet_row = col1.selectbox(
                 label='Facet Row',
-                options=_available_options(selected_dimensions, slq.all_dimensions),
+                options=[None] + _available_options(selected_dimensions, slq.all_dimensions),
                 placeholder='Select Facet Row',
                 key='chart_config_facet_row',
             )
@@ -186,13 +186,13 @@ def create_chart(df, slq: SemanticLayerQuery):
             )
             chart_config['nbins'] = nbins
             
-        if field == 'trendline':
-            trendline = col1.selectbox(
-                label='Select Trendline',
-                options=[None, 'ols'],
-                key='chart_config_trendline',
-            )
-            chart_config['trendline'] = trendline
+        # if field == 'trendline':
+        #     trendline = col1.selectbox(
+        #         label='Select Trendline',
+        #         options=[None, 'ols'],
+        #         key='chart_config_trendline',
+        #     )
+        #     chart_config['trendline'] = trendline
             
         if field == 'orientation':
             orientation = col1.selectbox(
