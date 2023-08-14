@@ -13,7 +13,10 @@ if 'conn' not in st.session_state or st.session_state.conn is None:
     st.stop()
     
 if 'metric_dict' not in st.session_state:
-    st.warning('No metrics found.  Please enter your JDBC URL and try again.')
+    st.warning(
+        'No metrics found.  Ensure your project has metrics defined and a production '
+        'job has been run successfully.'
+    )
     st.stop()
 
 # first party
