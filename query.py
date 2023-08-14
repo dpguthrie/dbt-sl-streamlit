@@ -34,6 +34,14 @@ class SemanticLayerQuery:
     def all_dimensions(self):
         return list(chain.from_iterable(self.dimensions.values()))
     
+    @property
+    def dimensions_x_time(self):
+        return self.dimensions['entity'] + self.dimensions['categorical']
+    
+    @property
+    def all_columns(self):
+        return self.all_dimensions + self.metrics
+    
     def _is_dim_type(self, dimension_type, dimension):
         try:
             return dimension_type.lower() == self.state.dimension_dict[dimension]['type'].lower()
