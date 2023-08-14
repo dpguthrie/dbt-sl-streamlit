@@ -11,9 +11,17 @@ st.set_page_config(
 if 'conn' not in st.session_state or st.session_state.conn is None:
     st.warning('Go to home page and enter your JDBC URL')
     st.stop()
+    
+if 'metric_dict' not in st.session_state:
+    st.warning(
+        'No metrics found.  Ensure your project has metrics defined and a production '
+        'job has been run successfully.'
+    )
+    st.stop()
  
 
 # first party
+from chart import create_chart
 from client import submit_query
 from helpers import get_shared_elements
 from query import SemanticLayerQuery
@@ -217,21 +225,16 @@ if st.button('Submit Query'):
     with st.spinner('Submitting Query...'):
         df = submit_query(st.session_state.conn, query, True)
         df.columns = [col.lower() for col in df.columns]
-    
-    if st.session_state.selected_explain:
-        st.code(df.iloc[0]['sql'])
-    else:
-        tab1, tab2, = st.tabs(['Data', 'Chart'])
-        with tab1:
-            st.dataframe(df, use_container_width=True)
+        st.session_state.slq = slq
+        st.session_state.df = df
 
-        with tab2:
-            if slq.has_time_dimension:
-                df.set_index(slq.dimensions['time'][0], inplace=True)
-            else:
-                df['combined'] = df.apply(
-                    lambda row: ' | '.join(str(row[col]) for col in slq._group_by), axis=1
-                )
-                df.set_index('combined', inplace=True)
-            chart_type = 'line_chart' if slq.has_time_dimension else 'bar_chart'
-            getattr(st, chart_type)(df, y=slq.metrics)
+if 'df' in st.session_state and 'slq' in st.session_state:
+    if st.session_state.selected_explain:
+        st.code(st.session_state.df.iloc[0]['sql'])
+    else:
+        with st.expander('View Chart', expanded=True):
+            create_chart(st.session_state.df, st.session_state.slq)
+
+        with st.expander('View Data', expanded=True):
+            st.dataframe(st.session_state.df, use_container_width=True)
+
