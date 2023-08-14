@@ -16,7 +16,12 @@ def prepare_app():
             df = submit_query(st.session_state.conn, query)
             if df is not None:
                 df.columns = [col.lower() for col in df.columns]
-                df.set_index(keys='name', inplace=True)
+                try:
+                    df.set_index(keys='name', inplace=True)
+                except KeyError:
+                    
+                    # Query worked, but nothing returned
+                    return None
                 return df    
         
     metric_df = _prepare_df(queries['metrics'], 'metrics')
