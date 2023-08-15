@@ -17,10 +17,7 @@ CHART_TYPE_FIELDS = {
 
 
 def _can_add_field(selections, available):
-    if len(selections) < len(available):
-        return True
-    
-    return False
+    return len(selections) < len(available)
 
 
 def _available_options(selections, available):
