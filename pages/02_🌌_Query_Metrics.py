@@ -142,7 +142,7 @@ with st.expander('Filtering:'):
                 st.selectbox(
                     label='Operator',
                     options=[
-                        '=', '>', '<', '>=', '<=', '<>', 'BETWEEN', 'LIKE', 'ILIKE', 'IN'
+                        '=', '>', '<', '>=', '<=', '<>', 'BETWEEN', 'LIKE', 'ILIKE', 'IN', 'NOT IN'
                     ],
                     key=f'where_operator_{i}',
                 )
