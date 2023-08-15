@@ -85,7 +85,7 @@ if st.session_state.jdbc_url != '':
 st.markdown(
     """
     ---
-    **👈 Now, select the "View Metrics" page from the sidebar** to query and view your metrics!
+    **👈 Now, select a page from the sidebar** to explore the Semantic Layer!
 
     ### Want to learn more?
     - Get started with the [dbt Semantic Layer](https://docs.getdbt.com/docs/use-dbt-semantic-layer/quickstart-sl)
