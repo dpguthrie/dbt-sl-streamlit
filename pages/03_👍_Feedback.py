@@ -42,7 +42,7 @@ with st.form('github_issue_form'):
                 st.stop()
                 
         if email != '':
-            description = f'Email Address: {email}'
+            description += f'Email Address: {email}\n\n{description}'
         response = post_issue(title, description)
         if response.status_code == 201:
             url = response.json()['html_url']
