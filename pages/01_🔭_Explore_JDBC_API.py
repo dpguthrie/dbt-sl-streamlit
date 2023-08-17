@@ -36,13 +36,8 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 
 with tab1:
     st.info('Use this query to fetch all defined metrics in your dbt project.')
-    query = '''
-select *
-from {{
-    semantic_layer.metrics()
-}}
-    '''
-    st.code(queries['metrics'])
+    query = queries['metrics']
+    st.code(query)
     if st.button('Submit Query', key='explore_submit_1'):
         df = submit_query(st.session_state.conn, query, True)
         st.dataframe(df, use_container_width=True)
