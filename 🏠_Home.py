@@ -3,6 +3,7 @@ import json
 
 # third party
 import streamlit as st
+import streamlit.components.v1 as components
 
 # first party
 from client import get_connection_attributes, submit_query
@@ -53,6 +54,7 @@ st.set_page_config(
     page_icon="👋",
     
 )
+
 st.markdown('# Explore the dbt Semantic Layer')
 
 st.markdown(
@@ -91,5 +93,11 @@ st.markdown(
     - Get started with the [dbt Semantic Layer](https://docs.getdbt.com/docs/use-dbt-semantic-layer/quickstart-sl)
     - Understand how to [build your metrics](https://docs.getdbt.com/docs/build/build-metrics-intro)
     - View the [Semantic Layer API](https://docs.getdbt.com/docs/dbt-cloud-apis/sl-api-overview)
+    - Brief Demo 👇
 """
+)
+
+components.html(
+    '''<div style="position: relative; padding-bottom: 77.25321888412017%; height: 0;"><iframe src="https://www.loom.com/embed/90419fc9aa1e4680a43525a386645a96?sid=4c3f76ff-21e5-4a86-82e8-c03489b646d5" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>''',
+    height=600
 )
