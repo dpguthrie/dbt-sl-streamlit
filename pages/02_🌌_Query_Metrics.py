@@ -18,12 +18,13 @@ if 'metric_dict' not in st.session_state:
         'job has been run successfully.'
     )
     st.stop()
- 
+
 
 # first party
 from chart import create_chart
 from client import submit_query
 from helpers import get_shared_elements
+from jdbc_api import queries
 from query import SemanticLayerQuery
 
 
@@ -96,6 +97,18 @@ all_dimensions = [
     if k in st.session_state.selected_metrics
 ]
 unique_dimensions = get_shared_elements(all_dimensions)
+
+if len(unique_dimensions) > 0:
+    query = queries['dimensions'].format(
+        **{'metrics': st.session_state.selected_metrics}
+    )
+    df = submit_query(st.session_state.conn, query)
+    df.columns = [col.lower() for col in df.columns]
+    df.set_index(keys='name', inplace=True)
+    df.columns = [col.lower() for col in df.columns]
+    df = df[~df.index.duplicated(keep='first')]
+    st.session_state.dimension_dict = df.to_dict(orient='index')
+
 col2.multiselect(
     label='Select Dimension(s)',
     options=sorted(unique_dimensions),

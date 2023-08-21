@@ -12,41 +12,29 @@ from jdbc_api import queries
         
 def prepare_app():
     
-    def _prepare_df(query: str, what: str):
-        with st.spinner(f'Gathering {what.capitalize()}...'):
-            df = submit_query(st.session_state.conn, query)
-            if df is not None:
-                df.columns = [col.lower() for col in df.columns]
-                try:
-                    df.set_index(keys='name', inplace=True)
-                except KeyError:
-                    
-                    # Query worked, but nothing returned
-                    return None
-                return df    
-        
-    metric_df = _prepare_df(queries['metrics'], 'metrics')
-    if metric_df is not None:
-        metric_df['dimensions'] = metric_df['dimensions'].str.split(', ')
-        metric_df['queryable_granularities'] = (
-            metric_df['queryable_granularities'].str.split(', ')
-        )
-        metric_df['type_params'] = metric_df['type_params'].apply(
-            lambda x: json.loads(x) if x else None
-        )
-        st.session_state.metric_dict = metric_df.to_dict(orient='index')
-        dimension_df = _prepare_df(
-            queries['dimensions'].format(
-                **{'metrics': list(st.session_state.metric_dict.keys())}
-            ),
-            'dimensions'
-        )
-        dimension_df['type_params'] = dimension_df['type_params'].apply(
-            lambda x: json.loads(x) if x else None
-        )
-        dimension_df = dimension_df[~dimension_df.index.duplicated(keep='first')]
-        st.session_state.dimension_dict = dimension_df.to_dict(orient='index')
-        st.success('Success!  Explore the rest of the app!')
+    with st.spinner(f'Gathering Metrics...'):
+        df = submit_query(st.session_state.conn, queries['metrics'])
+        if df is not None:
+            df.columns = [col.lower() for col in df.columns]
+            try:
+                df.set_index(keys='name', inplace=True)
+            except KeyError:
+                
+                # Query worked, but nothing returned
+                st.warning(
+                    'No Metrics returned!  Ensure your project has metrics defined '
+                    'and a production job has been run successfully.'
+                )
+            else:
+                df['dimensions'] = df['dimensions'].str.split(', ')
+                df['queryable_granularities'] = (
+                    df['queryable_granularities'].str.split(', ')
+                )
+                df['type_params'] = df['type_params'].apply(
+                    lambda x: json.loads(x) if x else None
+                )
+                st.session_state.metric_dict = df.to_dict(orient='index')
+                st.success('Success!  Explore the rest of the app!')
 
 
 st.set_page_config(
