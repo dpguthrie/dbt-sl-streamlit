@@ -131,7 +131,7 @@ def create_chart(df, slq: SemanticLayerQuery):
         if _can_add_field(chart_config.values(), slq.all_columns) and field == 'color':
             color = col1.selectbox(
                 label='Color',
-                options=_available_options(chart_config.values(), slq.all_columns),
+                options=[None] + _available_options(chart_config.values(), slq.all_columns),
                 placeholder='Select Color',
                 key='chart_config_color',
             )
@@ -140,7 +140,7 @@ def create_chart(df, slq: SemanticLayerQuery):
         if _can_add_field(selected_metrics, slq.metrics) and field == 'size':
             size = col1.selectbox(
                 label='Size',
-                options=_available_options(selected_metrics, slq.metrics),
+                options=[None] + _available_options(selected_metrics, slq.metrics),
                 placeholder='Select Size',
                 key='chart_config_size',
             )

@@ -1,9 +1,11 @@
 # stdlib
+import json
 from itertools import chain
 from typing import Dict, List
 
 # first party
 from helpers import keys_exist_in_dict
+from queries import GRAPHQL_QUERIES
 
 
 class SemanticLayerQuery:
@@ -14,6 +16,7 @@ class SemanticLayerQuery:
         self._format_dimensions()
         self._format_filters()
         self._format_order_by()
+        self._create_valid_options()
         
     def _has_type_dimension(self, dim_type: str):
         return dim_type in self.dimensions.keys()
@@ -100,6 +103,7 @@ class SemanticLayerQuery:
                 f"{{{{ {dim_class} }}}} {operator} {condition}"
             )
         self._where = ' AND '.join(formatted_filters)
+        self._where_kwargs = formatted_filters.copy()
         
     def _format_order_by(self) -> None:
         orders = self._create_list_of_lists('order', ['column', 'direction'])
@@ -113,29 +117,41 @@ class SemanticLayerQuery:
                 formatted_orders.append(column)
         self._order_by = formatted_orders
         
-    @property
-    def _query_inner(self):
+    def _create_valid_options(self):
         text = f'metrics={self.metrics}'
+        kwargs = {'environmentId': '$environmentId', 'metrics': json.dumps(self.metrics)}
         if len(self._group_by) > 0:
             text += f',\n        group_by={self._group_by}'
+            kwargs['groupBy'] = json.dumps(self._group_by)
         if len(self._where) > 0:
             text += f',\n        where="{self._where}"'
+            kwargs['where'] = json.dumps(self._where_kwargs)
         if len(self._order_by) > 0:
             text += f',\n        order_by={self._order_by}'
+            kwargs['order'] = json.dumps(self._order_by)
         if self.state.selected_limit is not None and self.state.selected_limit != 0:
             text += f',\n        limit={self.state.selected_limit}'
-        if self.state.selected_explain:
-            text += f',\n        explain={self.state.selected_explain}'
-        return text
+            kwargs['limit'] = self.state.selected_limit
+        self._jdbc_text = text
+        self._kwargs = kwargs
         
     @property
-    def query(self):
+    def jdbc_query(self):
         sql = f'''
 select *
 from {{{{
     semantic_layer.query(
-        {self._query_inner}
+        {self._jdbc_text}
     )
 }}}}
         '''
         return sql
+
+    @property
+    def graphql_query(self):
+        print(self._kwargs)
+        return GRAPHQL_QUERIES['create_query'].format(**{
+            'kwargs': ',\n    '.join([
+                f'{k}: {v}' for k, v in self._kwargs.items()
+            ])
+        })

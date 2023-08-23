@@ -22,9 +22,9 @@ if 'metric_dict' not in st.session_state:
 
 # first party
 from chart import create_chart
-from client import submit_query
-from helpers import get_shared_elements
-from jdbc_api import queries
+from client import submit_request
+from helpers import get_shared_elements, to_arrow_table
+from queries import GRAPHQL_QUERIES
 from query import SemanticLayerQuery
 
 
@@ -98,17 +98,6 @@ all_dimensions = [
 ]
 unique_dimensions = get_shared_elements(all_dimensions)
 
-if len(unique_dimensions) > 0:
-    query = queries['dimensions'].format(
-        **{'metrics': st.session_state.selected_metrics}
-    )
-    df = submit_query(st.session_state.conn, query)
-    df.columns = [col.lower() for col in df.columns]
-    df.set_index(keys='name', inplace=True)
-    df.columns = [col.lower() for col in df.columns]
-    df = df[~df.index.duplicated(keep='first')]
-    st.session_state.dimension_dict = df.to_dict(orient='index')
-
 col2.multiselect(
     label='Select Dimension(s)',
     options=sorted(unique_dimensions),
@@ -126,7 +115,7 @@ if len(unique_dimensions) > 0:
     if 'time' in dimension_types:
         col1, col2 = st.columns(2)
         grains = [
-            st.session_state.metric_dict[metric]['queryable_granularities']
+            st.session_state.metric_dict[metric]['queryableGranularities']
             for metric in st.session_state.selected_metrics
         ]
         col1.selectbox(
@@ -218,17 +207,13 @@ col1.number_input(
     help='Limit the amount of rows returned by the query with a limit clause',
 )
 col1.caption('If set to 0, no limit will be applied')
-col2.selectbox(
-    label='Explain Query',
-    options=[False, True],
-    key='selected_explain',
-    help='Return the query from metricflow',
-)
-col2.caption('If set to true, only the generated query will be returned.')
 
 slq = SemanticLayerQuery(st.session_state)
-query = slq.query
-st.code(query)
+jdbc_query = slq.jdbc_query
+graphql_query = slq.graphql_query
+tab1, tab2 = st.tabs(['GraphQL', 'JDBC'])
+tab1.code(graphql_query, language='graphql')
+tab2.code(jdbc_query, language='sql')
 
 if st.button('Submit Query'):
     if len(st.session_state.selected_metrics) == 0:
@@ -236,19 +221,35 @@ if st.button('Submit Query'):
         st.stop()
     
     with st.spinner('Submitting Query...'):
-        df = submit_query(st.session_state.conn, query, True)
+        payload = {'query': graphql_query}
+        json = submit_request(st.session_state.conn, payload)
+        query_id = json['data']['createQuery']['queryId']
+        while True:
+            query = GRAPHQL_QUERIES['get_results']
+            payload = {'variables': {'queryId': query_id}, 'query': query}
+            json = submit_request(st.session_state.conn, payload)
+            try:
+                data = json['data']['query']
+            except TypeError:
+                st.error(json['errors'][0]['message'])
+                st.stop()
+            else:
+                if data['status'].lower() == 'successful':
+                    break
+        
+        df = to_arrow_table(data['arrowResult'])
         df.columns = [col.lower() for col in df.columns]
         st.session_state.slq = slq
         st.session_state.df = df
-        st.session_state.explain = st.session_state.selected_explain
+        st.session_state.compiled_sql = data['sql']
 
 if 'df' in st.session_state and 'slq' in st.session_state:
-    if st.session_state.explain:
-        st.code(st.session_state.df.iloc[0]['sql'])
-    else:
-        with st.expander('View Chart', expanded=True):
-            create_chart(st.session_state.df, st.session_state.slq)
+    tab1, tab2, tab3 = st.tabs(['Chart', 'Data', 'SQL'])
+    with tab1:
+        create_chart(st.session_state.df, st.session_state.slq)
 
-        with st.expander('View Data', expanded=True):
-            st.dataframe(st.session_state.df, use_container_width=True)
+    with tab2:
+        st.dataframe(st.session_state.df, use_container_width=True)
 
+    with tab3:
+        st.code(st.session_state.compiled_sql, language='sql')

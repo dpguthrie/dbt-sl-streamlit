@@ -1,31 +1,4 @@
 [[package]]
-name = "adbc-driver-flightsql"
-version = "0.5.1"
-description = "An ADBC driver for working with Apache Arrow Flight SQL."
-category = "main"
-optional = false
-python-versions = ">=3.9"
-
-[package.dependencies]
-adbc-driver-manager = "*"
-
-[package.extras]
-dbapi = ["pandas", "pyarrow (>=8.0.0)"]
-test = ["pandas", "pyarrow (>=8.0.0)", "pytest"]
-
-[[package]]
-name = "adbc-driver-manager"
-version = "0.5.1"
-description = "A generic entrypoint for ADBC drivers."
-category = "main"
-optional = false
-python-versions = ">=3.9"
-
-[package.extras]
-dbapi = ["pandas", "pyarrow (>=8.0.0)"]
-test = ["duckdb", "pandas", "pyarrow (>=8.0.0)", "pytest"]
-
-[[package]]
 name = "altair"
 version = "5.0.1"
 description = "Vega-Altair: A declarative statistical visualization library for Python."
@@ -59,14 +32,6 @@ dev = ["attrs", "pre-commit"]
 docs = ["furo", "myst-parser", "sphinx", "sphinx-notfound-page", "sphinxcontrib-towncrier", "towncrier", "zope-interface"]
 tests = ["attrs", "zope-interface"]
 tests-no-zope = ["cloudpickle", "hypothesis", "mypy (>=1.1.1)", "pympler", "pytest-mypy-plugins", "pytest-xdist", "pytest (>=4.3.0)"]
-
-[[package]]
-name = "backoff"
-version = "2.2.1"
-description = "Function decoration for backoff and retry"
-category = "main"
-optional = false
-python-versions = ">=3.7,<4.0"
 
 [[package]]
 name = "blinker"
@@ -131,21 +96,6 @@ python-versions = "*"
 test = ["hypothesis (==3.55.3)", "flake8 (==3.7.8)"]
 
 [[package]]
-name = "dbtc"
-version = "0.5.2"
-description = "An unaffiliated python wrapper for dbt Cloud APIs"
-category = "main"
-optional = false
-python-versions = ">=3.8,<4.0"
-
-[package.dependencies]
-pydantic = ">=1.10.5,<2.0.0"
-requests = ">=2.27.1,<3.0.0"
-rudder-sdk-python = ">=1.0.6,<2.0.0"
-sgqlc = ">=15.0,<16.0"
-typer = {version = ">=0.6.1,<0.7.0", extras = ["all"]}
-
-[[package]]
 name = "decorator"
 version = "5.1.1"
 description = "Decorators for Humans"
@@ -174,14 +124,6 @@ python-versions = ">=3.7"
 
 [package.dependencies]
 gitdb = ">=4.0.1,<5"
-
-[[package]]
-name = "graphql-core"
-version = "3.2.3"
-description = "GraphQL implementation for Python, a port of GraphQL.js, the JavaScript reference implementation for GraphQL."
-category = "main"
-optional = false
-python-versions = ">=3.6,<4"
 
 [[package]]
 name = "idna"
@@ -257,14 +199,6 @@ description = "Safely add untrusted strings to HTML/XML markup."
 category = "main"
 optional = false
 python-versions = ">=3.7"
-
-[[package]]
-name = "monotonic"
-version = "1.6"
-description = "An implementation of time.monotonic() for Python 2 & < 3.3"
-category = "main"
-optional = false
-python-versions = "*"
 
 [[package]]
 name = "numpy"
@@ -357,29 +291,14 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "pyarrow"
-version = "12.0.1"
+version = "13.0.0"
 description = "Python library for Apache Arrow"
 category = "main"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 
 [package.dependencies]
 numpy = ">=1.16.6"
-
-[[package]]
-name = "pydantic"
-version = "1.10.12"
-description = "Data validation and settings management using python type hints"
-category = "main"
-optional = false
-python-versions = ">=3.7"
-
-[package.dependencies]
-typing-extensions = ">=4.2.0"
-
-[package.extras]
-dotenv = ["python-dotenv (>=0.10.4)"]
-email = ["email-validator (>=1.0.3)"]
 
 [[package]]
 name = "pydeck"
@@ -500,48 +419,6 @@ optional = false
 python-versions = ">=3.8"
 
 [[package]]
-name = "rudder-sdk-python"
-version = "1.0.6"
-description = "RudderStack is an open-source Segment alternative written in Go, built for the enterprise."
-category = "main"
-optional = false
-python-versions = "*"
-
-[package.dependencies]
-backoff = ">=2.1"
-monotonic = ">=1.5"
-python-dateutil = ">2.1"
-requests = ">=2.7,<3.0"
-six = ">=1.4"
-
-[package.extras]
-test = ["mock (==2.0.0)", "pylint (==1.9.3)", "flake8 (==3.7.9)", "coverage (==4.5.4)"]
-
-[[package]]
-name = "sgqlc"
-version = "15.0"
-description = "Simple GraphQL Client"
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[package.dependencies]
-graphql-core = "*"
-
-[package.extras]
-requests = ["requests"]
-sphinx = ["sphinx", "sphinx-argparse"]
-websocket = ["websocket-client"]
-
-[[package]]
-name = "shellingham"
-version = "1.5.1"
-description = "Tool to Detect Surrounding Shell"
-category = "main"
-optional = false
-python-versions = ">=3.7"
-
-[[package]]
 name = "six"
 version = "1.16.0"
 description = "Python 2 and 3 compatibility utilities"
@@ -630,26 +507,6 @@ optional = false
 python-versions = ">= 3.8"
 
 [[package]]
-name = "typer"
-version = "0.6.1"
-description = "Typer, build great CLIs. Easy to code. Based on Python type hints."
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[package.dependencies]
-click = ">=7.1.1,<9.0.0"
-colorama = {version = ">=0.4.3,<0.5.0", optional = true, markers = "extra == \"all\""}
-rich = {version = ">=10.11.0,<13.0.0", optional = true, markers = "extra == \"all\""}
-shellingham = {version = ">=1.3.0,<2.0.0", optional = true, markers = "extra == \"all\""}
-
-[package.extras]
-test = ["rich (>=10.11.0,<13.0.0)", "isort (>=5.0.6,<6.0.0)", "black (>=22.3.0,<23.0.0)", "mypy (==0.910)", "pytest-sugar (>=0.9.4,<0.10.0)", "pytest-xdist (>=1.32.0,<2.0.0)", "coverage (>=5.2,<6.0)", "pytest-cov (>=2.10.0,<3.0.0)", "pytest (>=4.4.0,<5.4.0)", "shellingham (>=1.3.0,<2.0.0)"]
-doc = ["mdx-include (>=1.4.1,<2.0.0)", "mkdocs-material (>=8.1.4,<9.0.0)", "mkdocs (>=1.1.2,<2.0.0)"]
-dev = ["pre-commit (>=2.17.0,<3.0.0)", "flake8 (>=3.8.3,<4.0.0)", "autoflake (>=1.3.1,<2.0.0)"]
-all = ["rich (>=10.11.0,<13.0.0)", "shellingham (>=1.3.0,<2.0.0)", "colorama (>=0.4.3,<0.5.0)"]
-
-[[package]]
 name = "typing-extensions"
 version = "4.7.1"
 description = "Backported and Experimental Type Hints for Python 3.7+"
@@ -734,14 +591,11 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-ena
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.9,<3.9.7 || >3.9.7,<4.0"
-content-hash = "210ea2c54ede2fba014b23962b8acc30798347ff590dcae3101c72f8c61091f9"
+content-hash = "dc7ba0096e269a37ab64e18a280aae96a49e5d723a9fb4d6ca961e35bfa94ab9"
 
 [metadata.files]
-adbc-driver-flightsql = []
-adbc-driver-manager = []
 altair = []
 attrs = []
-backoff = []
 blinker = []
 cachetools = []
 certifi = []
@@ -749,14 +603,12 @@ charset-normalizer = []
 click = []
 colorama = []
 commonmark = []
-dbtc = []
 decorator = [
     {file = "decorator-5.1.1-py3-none-any.whl", hash = "sha256:b8c3f85900b9dc423225913c5aace94729fe1fa9763b38939a95226f02d37186"},
     {file = "decorator-5.1.1.tar.gz", hash = "sha256:637996211036b6385ef91435e4fae22989472f9d571faba8927ba8253acbc330"},
 ]
 gitdb = []
 gitpython = []
-graphql-core = []
 idna = []
 importlib-metadata = []
 jinja2 = [
@@ -766,7 +618,6 @@ jinja2 = [
 jsonschema = []
 jsonschema-specifications = []
 markupsafe = []
-monotonic = []
 numpy = []
 packaging = []
 pandas = []
@@ -774,7 +625,6 @@ pillow = []
 plotly = []
 protobuf = []
 pyarrow = []
-pydantic = []
 pydeck = []
 pygments = []
 pympler = []
@@ -788,13 +638,6 @@ referencing = []
 requests = []
 rich = []
 rpds-py = []
-rudder-sdk-python = []
-sgqlc = [
-    {file = "sgqlc-15.0-py3-none-any.whl", hash = "sha256:6705ed48683cd48b3c3252ca737be67abb7bc790ac5749c0d806c3f36320f720"},
-    {file = "sgqlc-15.0-py3.7.egg", hash = "sha256:103f6df9e5669648ed091c29d66e0cfe9ae7ae3f1efa5138b369cbe04ef6196b"},
-    {file = "sgqlc-15.0.tar.gz", hash = "sha256:c74c9e657ee7409486aaccbffddf369c048b8b262e15b3516d96c51b86bde176"},
-]
-shellingham = []
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
     {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
@@ -811,7 +654,6 @@ toml = [
 ]
 toolz = []
 tornado = []
-typer = []
 typing-extensions = []
 tzdata = []
 tzlocal = []

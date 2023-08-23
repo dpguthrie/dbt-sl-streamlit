@@ -13,6 +13,9 @@ def post_issue(title: str, body: str):
     return response
 
 
+st.write('# Feedback')
+
+
 with st.form('github_issue_form'):
     required_fields = {
         'feedback_title': 'Title',
