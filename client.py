@@ -19,8 +19,6 @@ def submit_request(_conn_attr: ConnAttr, payload: Dict) -> Dict:
 
     # TODO: This should take into account multi-region and single-tenant
     url = 'https://cloud.getdbt.com/semantic-layer/api/graphql'
-    if payload is None:
-        payload = {}
     if not 'variables' in payload:
         payload['variables'] = {}
     payload['variables']['environmentId'] = _conn_attr.params['environmentid']
