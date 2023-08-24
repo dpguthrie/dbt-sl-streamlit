@@ -216,32 +216,41 @@ tab1.code(graphql_query, language='graphql')
 tab2.code(jdbc_query, language='sql')
 
 if st.button('Submit Query'):
+    
+    statuses = ['pending', 'running', 'compiled', 'failed', 'successful']
+    
     if len(st.session_state.selected_metrics) == 0:
         st.warning('You must select at least one metric!')
         st.stop()
-    
-    with st.spinner('Submitting Query...'):
-        payload = {'query': graphql_query}
+
+    progress_bar = st.progress(0, 'Submitting Query...')
+    payload = {'query': graphql_query}
+    json = submit_request(st.session_state.conn, payload)
+    query_id = json['data']['createQuery']['queryId']
+    while True:
+        query = GRAPHQL_QUERIES['get_results']
+        payload = {'variables': {'queryId': query_id}, 'query': query}
         json = submit_request(st.session_state.conn, payload)
-        query_id = json['data']['createQuery']['queryId']
-        while True:
-            query = GRAPHQL_QUERIES['get_results']
-            payload = {'variables': {'queryId': query_id}, 'query': query}
-            json = submit_request(st.session_state.conn, payload)
-            try:
-                data = json['data']['query']
-            except TypeError:
-                st.error(json['errors'][0]['message'])
-                st.stop()
+        try:
+            data = json['data']['query']
+        except TypeError:
+            st.error(json['errors'][0]['message'])
+            st.stop()
+        else:
+            if data['status'].lower() in ('successful', 'failed'):
+                progress_bar.progress(100, f'Query is {data["status"].capitalize()}!')
+                break
             else:
-                if data['status'].lower() == 'successful':
-                    break
-        
-        df = to_arrow_table(data['arrowResult'])
-        df.columns = [col.lower() for col in df.columns]
-        st.session_state.slq = slq
-        st.session_state.df = df
-        st.session_state.compiled_sql = data['sql']
+                progress_bar.progress(
+                    (statuses.index(data['status'].lower()) + 1) * 20,
+                    f'Query is {data["status"].capitalize()}...'
+                )
+    
+    df = to_arrow_table(data['arrowResult'])
+    df.columns = [col.lower() for col in df.columns]
+    st.session_state.slq = slq
+    st.session_state.df = df
+    st.session_state.compiled_sql = data['sql']
 
 if 'df' in st.session_state and 'slq' in st.session_state:
     tab1, tab2, tab3 = st.tabs(['Chart', 'Data', 'SQL'])
