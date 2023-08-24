@@ -28,15 +28,27 @@ import pandas as pd
 import plotly.express as px
 
 # first party
-from client import submit_query, submit_request
+from client import submit_request
 from helpers import get_shared_elements, to_arrow_table
 from queries import *
 
 
-def _tabbed_queries(key: str, *, format: Dict = None):
+def _tabbed_queries(key: str, *, format: Dict = None, variables: Dict = None):
     tab1, tab2 = st.tabs(['GraphQL', 'JDBC'])
     with tab1:
-        st.code(GRAPHQL_QUERIES[key], language='graphql')
+        query = GRAPHQL_QUERIES[key]
+        variables = variables.copy() if variables is not None else format.copy() if format is not None else {}
+        variables['environmentId'] = int(st.session_state.conn.params['environmentid'])
+        code = f'''
+import requests
+
+
+url = 'https://cloud.getdbt.com/semantic-layer/api/graphql'
+query = \'\'\'{query}\'\'\'
+payload = {{'query': query, 'variables': {variables}}}
+response = requests.post(url, json=payload, headers={{'Authorization': 'Bearer ***'}})
+        '''
+        st.code(code, language='python')
         
     with tab2:
         query = JDBC_QUERIES[key]
@@ -123,7 +135,11 @@ with tab3:
         options=sorted(unique_dimensions),
         placeholder='Select a dimension'
     )
-    _tabbed_queries('dimension_values')
+    _tabbed_queries(
+        'dimension_values',
+        format={'metrics': metrics, 'dimension': [dimension]},
+        variables={'metrics': metrics, 'groupBy': [dimension]}
+    )
     if st.button('Submit Query', key='explore_submit_3'):
         with st.spinner(f'Fetching dimension values for `{dimension}`'):
             if len(metrics) == 0:

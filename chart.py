@@ -1,4 +1,5 @@
 # third party
+import pandas as pd
 import plotly.express as px
 import streamlit as st
 
@@ -7,10 +8,10 @@ from query import SemanticLayerQuery
 
 
 CHART_TYPE_FIELDS = {
-    'line': ['x', 'y', 'y2', 'color', 'facet_row', 'facet_col'],
-    'bar': ['x', 'y', 'color', 'orientation', 'barmode'],
+    'line': ['x', 'y', 'color', 'facet_row', 'facet_col', 'y2'],
+    'bar': ['x', 'y', 'color', 'orientation', 'barmode', 'y2'],
     'pie': ['values', 'names'],
-    'area': ['x', 'y', 'color'],
+    'area': ['x', 'y', 'color', 'y2'],
     'scatter': ['x', 'y', 'color', 'size', 'facet_col', 'facet_row', 'trendline'],
     'histogram': ['x', 'nbins', 'histfunc'],
 }
@@ -24,7 +25,7 @@ def _available_options(selections, available):
     return [option for option in available if option not in selections]
 
 
-def _sort_dataframe(df, slq: SemanticLayerQuery):
+def _sort_dataframe(df: pd.DataFrame, slq: SemanticLayerQuery):
     try:
         time_dimensions = [col for col in df.columns if col in slq.dimensions['time']]
     except KeyError:
@@ -36,6 +37,41 @@ def _sort_dataframe(df, slq: SemanticLayerQuery):
             if not is_sorted:
                 df = df.sort_values(by=col)
         return df
+    
+    
+def _add_secondary_yaxis(df, fig, dct):
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+    
+    
+    chart_map = {
+        'line': 'Scatter',
+        'bar': 'Bar',
+        'area': 'Scatter',
+    }
+    configs = ['orientation']
+    
+    new_fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+    # add traces from plotly express figure to first figure
+    for t in fig.select_traces():
+        new_fig.add_trace(t, secondary_y = False)
+        
+    addl_config = {}
+    if dct['chart_type'] == 'line':
+        addl_config['mode'] = 'lines'
+    elif dct['chart_type'] == 'area':
+        addl_config['fill'] = 'tozeroy'
+
+    new_fig.add_trace(
+        getattr(go, chart_map[dct['chart_type']])(
+            x = df[dct['x']],
+            y = df[dct['y']],
+            **addl_config
+        ),
+        secondary_y = True
+    )
+    return new_fig
 
         
 def create_chart(df, slq: SemanticLayerQuery):
@@ -101,15 +137,26 @@ def create_chart(df, slq: SemanticLayerQuery):
             )
             chart_config['y'] = y
             
-        # if len(slq.metrics) > 1:
-        #     # if col1.button('Add Secondary Y-Axis', key='y_axis_button'):
-        #     y2 = col1.selectbox(
-        #         label='Y-Axis 2',
-        #         options=[m for m in slq.metrics if m not in chart_config.values()],
-        #         placeholder='Select Secondary Axis',
-        #         key='chart_config_y2',
-        #     )
-        #     chart_config['y2'] = y2
+        if (
+            len(slq.metrics) > 1
+            and field == 'y2'
+            and len([m for m in slq.metrics if m not in chart_config.values()]) > 0
+        ):
+            chart_config['y2'] = {}
+            expander = col1.expander('Secondary Axis Options')
+            y2 = expander.selectbox(
+                label='Secondary Axis',
+                options=[None] + [m for m in slq.metrics if m not in chart_config.values()],
+                key='chart_config_y2',
+            )
+            chart_config['y2']['metric'] = y2
+            y2_chart = expander.selectbox(
+                label='Secondary Axis Chart Type',
+                options=chart_types,
+                index=chart_types.index(selected_chart_type),
+                key='chart_config_y2_chart_type'
+            )
+            chart_config['y2']['chart_type'] = y2_chart
                 
         if field == 'values':
             values = col1.selectbox(
@@ -128,10 +175,10 @@ def create_chart(df, slq: SemanticLayerQuery):
             )
             chart_config['names'] = names
             
-        if _can_add_field(chart_config.values(), slq.all_columns) and field == 'color':
+        if field == 'color':
             color = col1.selectbox(
                 label='Color',
-                options=[None] + _available_options(chart_config.values(), slq.all_columns),
+                options=[None] + slq.all_columns,
                 placeholder='Select Color',
                 key='chart_config_color',
             )
@@ -213,8 +260,14 @@ def create_chart(df, slq: SemanticLayerQuery):
             chart_config['barmode'] = barmode
         
     with col2:
-        # TODO: Sort time dimension automatically if not explicitly done in query
-        
         df = _sort_dataframe(st.session_state.df, st.session_state.slq)
+        y2_dict = chart_config.pop('y2', None)
         fig = getattr(px, selected_chart_type)(df, **chart_config)
+        if y2_dict is not None and y2_dict['metric'] is not None:
+            dct = {
+                'y': y2_dict['metric'],
+                'x': chart_config['x'],
+                'chart_type': y2_dict['chart_type'],
+            }
+            fig = _add_secondary_yaxis(df, fig, dct)
         st.plotly_chart(fig, theme='streamlit', use_container_width=True)

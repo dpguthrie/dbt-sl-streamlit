@@ -7,7 +7,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 # first party
-from client import get_connection_attributes, submit_query, submit_request
+from client import get_connection_attributes, submit_request
 from queries import GRAPHQL_QUERIES
 
         

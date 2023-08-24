@@ -149,7 +149,6 @@ from {{{{
 
     @property
     def graphql_query(self):
-        print(self._kwargs)
         return GRAPHQL_QUERIES['create_query'].format(**{
             'kwargs': ',\n    '.join([
                 f'{k}: {v}' for k, v in self._kwargs.items()
