@@ -64,7 +64,7 @@ query GetMetricsForDimensions($environmentId: BigInt!, $dimensions: [String!]!) 
 }
     ''',
     'create_query': '''
-mutation CreateQuery($environmentId: BigInt!) {{
+mutation CreateQuery({arguments}) {{
   createQuery(
     {kwargs}
   ) {{

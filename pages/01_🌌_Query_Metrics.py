@@ -28,6 +28,19 @@ from queries import GRAPHQL_QUERIES
 from query import SemanticLayerQuery
 
 
+def style_progress_bar(status: str):
+    status_map = {'failed': '#FF2B2B', 'successful': '00FF74'}
+    st.markdown(
+        f"""
+        <style>
+            .st-hq {{
+                background-color: {status_map[status]};
+            }}
+        </style>""",
+        unsafe_allow_html=True,
+    )
+
+
 def get_time_length(interval):
     time_lengths = {
         'day': 1,
@@ -212,7 +225,16 @@ slq = SemanticLayerQuery(st.session_state)
 jdbc_query = slq.jdbc_query
 graphql_query = slq.graphql_query
 tab1, tab2 = st.tabs(['GraphQL', 'JDBC'])
-tab1.code(graphql_query, language='graphql')
+code = f'''
+import requests
+
+
+url = 'https://cloud.getdbt.com/semantic-layer/api/graphql'
+query = \'\'\'{graphql_query}\'\'\'
+payload = {{'query': query, 'variables': {slq._gql["variables"]}}}
+response = requests.post(url, json=payload, headers={{'Authorization': 'Bearer ***'}})
+'''
+tab1.code(code, language='python')
 tab2.code(jdbc_query, language='sql')
 
 if st.button('Submit Query'):
@@ -224,9 +246,15 @@ if st.button('Submit Query'):
         st.stop()
 
     progress_bar = st.progress(0, 'Submitting Query...')
-    payload = {'query': graphql_query}
+    payload = {'query': graphql_query, 'variables': slq._gql['variables']}
     json = submit_request(st.session_state.conn, payload)
-    query_id = json['data']['createQuery']['queryId']
+    try:
+        query_id = json['data']['createQuery']['queryId']
+    except TypeError:
+        style_progress_bar('failed')
+        progress_bar.progress(80, 'Query Failed!')
+        st.error(json['errors'][0]['message'])
+        st.stop()
     while True:
         query = GRAPHQL_QUERIES['get_results']
         payload = {'variables': {'queryId': query_id}, 'query': query}
@@ -234,16 +262,27 @@ if st.button('Submit Query'):
         try:
             data = json['data']['query']
         except TypeError:
+            style_progress_bar('failed')
+            progress_bar.progress(80, 'Query Failed!')
             st.error(json['errors'][0]['message'])
             st.stop()
         else:
-            if data['status'].lower() in ('successful', 'failed'):
-                progress_bar.progress(100, f'Query is {data["status"].capitalize()}!')
+            status = data['status'].lower()
+            if status == 'successful':
+                style_progress_bar('successful')
+                progress_bar.progress(100, 'Query Successful!')
                 break
+            elif status == 'failed':
+                progress_bar.progress(
+                    (statuses.index(status) + 1) * 20,
+                    'red:Query Failed!'
+                )
+                st.error(data['error'])
+                st.stop()
             else:
                 progress_bar.progress(
-                    (statuses.index(data['status'].lower()) + 1) * 20,
-                    f'Query is {data["status"].capitalize()}...'
+                    (statuses.index(status) + 1) * 20,
+                    f'Query is {status.capitalize()}...'
                 )
     
     df = to_arrow_table(data['arrowResult'])

@@ -9,6 +9,7 @@ from queries import GRAPHQL_QUERIES
 
 
 class SemanticLayerQuery:
+
     def __init__(self, state: Dict):
         self.state = state
         self._classify_dimensions()
@@ -119,21 +120,33 @@ class SemanticLayerQuery:
         
     def _create_valid_options(self):
         text = f'metrics={self.metrics}'
-        kwargs = {'environmentId': '$environmentId', 'metrics': json.dumps(self.metrics)}
+        gql = {
+            'arguments': {'$environmentId': 'BigInt!', '$metrics': '[MetricInput!]!'},
+            'kwargs': {'environmentId': '$environmentId', 'metrics': '$metrics'},
+            'variables': {'metrics': [{'name': m} for m in self.metrics]},
+        }
         if len(self._group_by) > 0:
             text += f',\n        group_by={self._group_by}'
-            kwargs['groupBy'] = json.dumps(self._group_by)
+            gql['arguments']['$groupBy'] = '[GroupByInput!]!'
+            gql['kwargs']['groupBy'] = '$groupBy'
+            gql['variables']['groupBy'] = []
+            for group in self._group_by:
+                parts = group.split('__')
+                group_variable = {'name': parts[0]}
+                if len(parts) > 1 and self._is_dim_type('time', parts[0]):
+                    group_variable['grain'] = parts[1]
+                gql['variables']['groupBy'].append(group_variable)
         if len(self._where) > 0:
             text += f',\n        where="{self._where}"'
-            kwargs['where'] = json.dumps(self._where_kwargs)
+            gql['kwargs']['where'] = json.dumps(self._where_kwargs)
         if len(self._order_by) > 0:
             text += f',\n        order_by={self._order_by}'
-            kwargs['order'] = json.dumps(self._order_by)
+            gql['kwargs']['order'] = json.dumps(self._order_by)
         if self.state.selected_limit is not None and self.state.selected_limit != 0:
             text += f',\n        limit={self.state.selected_limit}'
-            kwargs['limit'] = self.state.selected_limit
+            gql['kwargs']['limit'] = self.state.selected_limit
         self._jdbc_text = text
-        self._kwargs = kwargs
+        self._gql = gql
         
     @property
     def jdbc_query(self):
@@ -150,7 +163,8 @@ from {{{{
     @property
     def graphql_query(self):
         return GRAPHQL_QUERIES['create_query'].format(**{
+            'arguments': ', '.join(f'{k}: {v}' for k, v in self._gql['arguments'].items()),
             'kwargs': ',\n    '.join([
-                f'{k}: {v}' for k, v in self._kwargs.items()
+                f'{k}: {v}' for k, v in self._gql['kwargs'].items()
             ])
         })
