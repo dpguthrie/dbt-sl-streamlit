@@ -132,9 +132,10 @@ class SemanticLayerQuery:
             gql['variables']['groupBy'] = []
             for group in self._group_by:
                 parts = group.split('__')
-                group_variable = {'name': parts[0]}
                 if len(parts) > 1 and self._is_dim_type('time', parts[0]):
-                    group_variable['grain'] = parts[1]
+                    group_variable = {'name': parts[0], 'grain': parts[1]}
+                else:
+                    group_variable = {'name': group}
                 gql['variables']['groupBy'].append(group_variable)
         if len(self._where) > 0:
             text += f',\n        where="{self._where}"'
