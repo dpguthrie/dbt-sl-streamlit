@@ -107,8 +107,24 @@ class SemanticLayerQuery:
         self._where_kwargs = formatted_filters.copy()
         
     def _format_order_by(self) -> None:
+        def _format_order_by_kwarg(column: str, direction: str) -> Dict:
+            dct = {}
+            if column in self.metrics:
+                dct['metric'] = {'name': column}
+            else:
+                if self._is_dim_type('time', column):
+                    column, grain = column.split('__')
+                    dct['groupBy'] = {'name': column}
+                    dct['groupBy']['grain'] = grain
+                else:
+                    dct['groupBy'] = {'name': column}
+            if direction.lower() == 'desc':
+                dct['descending'] = True
+            return dct
+
         orders = self._create_list_of_lists('order', ['column', 'direction'])
         formatted_orders = []
+        gql_orders = []
         for column, direction in orders:
             if self._is_dim_type('time', column):
                 column = f'{column}__{self.state.selected_grain}'
@@ -116,7 +132,9 @@ class SemanticLayerQuery:
                 formatted_orders.append(f'-{column}')
             else:
                 formatted_orders.append(column)
+            gql_orders.append(_format_order_by_kwarg(column, direction))
         self._order_by = formatted_orders
+        self._order_by_kwargs = gql_orders
         
     def _create_valid_options(self):
         text = f'metrics={self.metrics}'
@@ -142,7 +160,9 @@ class SemanticLayerQuery:
             gql['kwargs']['where'] = json.dumps(self._where_kwargs)
         if len(self._order_by) > 0:
             text += f',\n        order_by={self._order_by}'
-            gql['kwargs']['order'] = json.dumps(self._order_by)
+            gql['arguments']['$orderBy'] = '[OrderByInput!]!'
+            gql['kwargs']['orderBy'] = '$orderBy'
+            gql['variables']['orderBy'] = self._order_by_kwargs
         if self.state.selected_limit is not None and self.state.selected_limit != 0:
             text += f',\n        limit={self.state.selected_limit}'
             gql['kwargs']['limit'] = self.state.selected_limit
