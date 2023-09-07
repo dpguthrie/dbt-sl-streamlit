@@ -93,6 +93,7 @@ class SemanticLayerQuery:
     def _format_filters(self) -> None:
         filters = self._create_list_of_lists('where', ['column', 'operator', 'condition'])
         formatted_filters = []
+        gql_filters = []
         for column, operator, condition in filters:
             if self._is_dim_type('time', column):
                 dim_class = f"TimeDimension('{column}', '{self.state.get('selected_grain', 'day').upper()}')"
@@ -100,11 +101,11 @@ class SemanticLayerQuery:
                 dim_class = f"Entity('{column}')"
             else:
                 dim_class = f"Dimension('{column}')"
-            formatted_filters.append(
-                f"{{{{ {dim_class} }}}} {operator} {condition}"
-            )
+            where_string = f"{{{{ {dim_class} }}}} {operator} {condition}"
+            formatted_filters.append(where_string)
+            gql_filters.append({'sql': where_string})
         self._where = ' AND '.join(formatted_filters)
-        self._where_kwargs = formatted_filters.copy()
+        self._where_kwargs = gql_filters
         
     def _format_order_by(self) -> None:
         def _format_order_by_kwarg(column: str, direction: str) -> Dict:
@@ -157,7 +158,9 @@ class SemanticLayerQuery:
                 gql['variables']['groupBy'].append(group_variable)
         if len(self._where) > 0:
             text += f',\n        where="{self._where}"'
-            gql['kwargs']['where'] = json.dumps(self._where_kwargs)
+            gql['arguments']['$where'] = '[WhereInput!]!'
+            gql['kwargs']['where'] = '$where'
+            gql['variables']['where'] = self._where_kwargs
         if len(self._order_by) > 0:
             text += f',\n        order_by={self._order_by}'
             gql['arguments']['$orderBy'] = '[OrderByInput!]!'
