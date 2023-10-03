@@ -80,17 +80,16 @@ question = st.text_input(
     key="question",
 )
 
-llm = OpenAI(
-    openai_api_key=os.environ.get("OPENAI_API_KEY", api_key),
-    model_name="text-davinci-003",
-    temperature=0,
-)
-
 if question:
     input = prompt.format(
         metrics=metrics,
         dimensions=dimensions,
         question=question,
+    )
+    llm = OpenAI(
+        openai_api_key=os.environ.get("OPENAI_API_KEY", api_key),
+        model_name="text-davinci-003",
+        temperature=0,
     )
     chain = LLMChain(llm=llm, prompt=prompt)
     output = chain.run(metrics=metrics, dimensions=dimensions, question=question)
