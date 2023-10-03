@@ -9,6 +9,7 @@ from langchain.llms import OpenAI
 from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts.few_shot import FewShotPromptTemplate
 from langchain.schema.output_parser import OutputParserException
+from pydantic import ValidationError
 
 
 st.set_page_config(
@@ -86,11 +87,16 @@ if question:
         dimensions=dimensions,
         question=question,
     )
-    llm = OpenAI(
-        openai_api_key=os.environ.get("OPENAI_API_KEY", api_key),
-        model_name="text-davinci-003",
-        temperature=0,
-    )
+    try:
+        llm = OpenAI(
+            openai_api_key=os.environ.get("OPENAI_API_KEY", api_key),
+            model_name="text-davinci-003",
+            temperature=0,
+        )
+    except ValidationError as e:
+        st.write(e)
+        st.stop()
+
     chain = LLMChain(llm=llm, prompt=prompt)
     output = chain.run(metrics=metrics, dimensions=dimensions, question=question)
     try:
