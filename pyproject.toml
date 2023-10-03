@@ -11,6 +11,7 @@ streamlit = "^1.25.0"
 plotly = "^5.15.0"
 requests = "^2.31.0"
 pyarrow = "^13.0.0"
+langchain = "^0.0.306"
 
 [tool.poetry.dev-dependencies]
 
