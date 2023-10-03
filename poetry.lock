@@ -429,6 +429,25 @@ optional = false
 python-versions = ">=3.9"
 
 [[package]]
+name = "openai"
+version = "0.28.1"
+description = "Python client library for the OpenAI API"
+category = "main"
+optional = false
+python-versions = ">=3.7.1"
+
+[package.dependencies]
+aiohttp = "*"
+requests = ">=2.20"
+tqdm = "*"
+
+[package.extras]
+datalib = ["numpy", "pandas (>=1.2.3)", "pandas-stubs (>=1.1.0.11)", "openpyxl (>=3.0.7)"]
+dev = ["black (>=21.6b0,<22.0.0)", "pytest (>=6.0.0,<7.0.0)", "pytest-asyncio", "pytest-mock"]
+embeddings = ["scikit-learn (>=1.0.2)", "tenacity (>=8.0.1)", "matplotlib", "plotly", "numpy", "scipy", "pandas (>=1.2.3)", "pandas-stubs (>=1.1.0.11)", "openpyxl (>=3.0.7)"]
+wandb = ["wandb", "numpy", "pandas (>=1.2.3)", "pandas-stubs (>=1.1.0.11)", "openpyxl (>=3.0.7)"]
+
+[[package]]
 name = "packaging"
 version = "23.1"
 description = "Core utilities for Python packages"
@@ -806,6 +825,23 @@ optional = false
 python-versions = ">= 3.8"
 
 [[package]]
+name = "tqdm"
+version = "4.66.1"
+description = "Fast, Extensible Progress Meter"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+colorama = {version = "*", markers = "platform_system == \"Windows\""}
+
+[package.extras]
+dev = ["pytest (>=6)", "pytest-cov", "pytest-timeout", "pytest-xdist"]
+notebook = ["ipywidgets (>=6)"]
+slack = ["slack-sdk"]
+telegram = ["requests"]
+
+[[package]]
 name = "typing-extensions"
 version = "4.7.1"
 description = "Backported and Experimental Type Hints for Python 3.7+"
@@ -914,7 +950,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-ena
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.9,<3.9.7 || >3.9.7,<4.0"
-content-hash = "d2d2ec9fed3bdc80c23dbc970f3292d0654fb383e29b22dd65bc7da8c16e8f46"
+content-hash = "cc9b424813818f9ee91b8d1aad978f22bb39cf7fc389e78b2fcd905aadb20796"
 
 [metadata.files]
 aiohttp = []
@@ -959,6 +995,7 @@ multidict = []
 mypy-extensions = []
 numexpr = []
 numpy = []
+openai = []
 packaging = []
 pandas = []
 pillow = []
@@ -999,6 +1036,7 @@ toml = [
 ]
 toolz = []
 tornado = []
+tqdm = []
 typing-extensions = []
 typing-inspect = []
 tzdata = []
