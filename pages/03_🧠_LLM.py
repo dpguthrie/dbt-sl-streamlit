@@ -9,7 +9,7 @@ from langchain.llms import OpenAI
 from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts.few_shot import FewShotPromptTemplate
 from langchain.schema.output_parser import OutputParserException
-from pydantic import ValidationError
+from pydantic.v1.error_wrappers import ValidationError
 
 
 st.set_page_config(
