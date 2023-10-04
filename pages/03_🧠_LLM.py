@@ -109,7 +109,7 @@ if question:
 import requests
 
 
-url = 'https://cloud.getdbt.com/semantic-layer/api/graphql'
+url = 'https://semantic-layer.cloud.getdbt.com/api/graphql'
 query = \'\'\'{query.gql}\'\'\'
 payload = {{'query': query, 'variables': {query.variables}}}
 response = requests.post(url, json=payload, headers={{'Authorization': 'Bearer ***'}})
@@ -154,8 +154,8 @@ response = requests.post(url, json=payload, headers={{'Authorization': 'Bearer *
 
     df = to_arrow_table(data["arrowResult"])
     df.columns = [col.lower() for col in df.columns]
-    tab1, tab2 = st.tabs(["Data", "SQL"])
+    tab1, tab2 = st.tabs(["SQL", "Data"])
     with tab1:
-        st.dataframe(df, use_container_width=True)
-    with tab2:
         st.code(data["sql"], language="sql")
+    with tab2:
+        st.dataframe(df, use_container_width=True)
