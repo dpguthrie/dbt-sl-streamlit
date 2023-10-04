@@ -114,7 +114,8 @@ query = \'\'\'{query.gql}\'\'\'
 payload = {{'query': query, 'variables': {query.variables}}}
 response = requests.post(url, json=payload, headers={{'Authorization': 'Bearer ***'}})
     """
-    st.code(code, language="python")
+    with st.expander("View API Request", expanded=False):
+        st.code(code, language="python")
     progress_bar = st.progress(0, "Submitting Query ... ")
     payload = {"query": query.gql, "variables": query.variables}
     json = submit_request(st.session_state.conn, payload)
