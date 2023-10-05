@@ -231,7 +231,7 @@ with st.expander("View API Request", expanded=False):
 import requests
 
 
-url = 'https://cloud.getdbt.com/semantic-layer/api/graphql'
+url = '{st.session_state.conn.host}/api/graphql'
 query = \'\'\'{graphql_query}\'\'\'
 payload = {{'query': query, 'variables': {slq._gql["variables"]}}}
 response = requests.post(url, json=payload, headers={{'Authorization': 'Bearer ***'}})

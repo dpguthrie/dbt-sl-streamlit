@@ -109,7 +109,7 @@ if question:
 import requests
 
 
-url = 'https://semantic-layer.cloud.getdbt.com/api/graphql'
+url = '{st.session_state.conn.host}/api/graphql'
 query = \'\'\'{query.gql}\'\'\'
 payload = {{'query': query, 'variables': {query.variables}}}
 response = requests.post(url, json=payload, headers={{'Authorization': 'Bearer ***'}})
