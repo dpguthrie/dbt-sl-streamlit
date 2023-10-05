@@ -17,7 +17,7 @@ class ConnAttr:
 
 def submit_request(_conn_attr: ConnAttr, payload: Dict) -> Dict:
     # TODO: This should take into account multi-region and single-tenant
-    url = "https://semantic-layer.cloud.getdbt.com/api/graphql"
+    url = f"{_conn_attr.host}/api/graphql"
     if not "variables" in payload:
         payload["variables"] = {}
     payload["variables"]["environmentId"] = _conn_attr.params["environmentid"]
@@ -37,10 +37,9 @@ def get_connection_attributes(uri):
     except KeyError:
         st.error("Token is missing from the JDBC URL.")
     else:
-        return ConnAttr(
-            host=parsed.path.replace("arrow-flight-sql", "grpc")
-            if params.pop("useencryption", None) == "false"
-            else parsed.path.replace("arrow-flight-sql", "grpc+tls"),
+        attrs = ConnAttr(
+            host=parsed.path.replace("arrow-flight-sql", "https").replace(":443", ""),
             params=params,
             auth_header=f"Bearer {token}",
         )
+        return attrs
