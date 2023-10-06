@@ -109,4 +109,70 @@ EXAMPLES = [
             }
         ),
     },
+    {
+        "metrics": "total_revenue, total_expense, total_profit, total_customers, monthly_customers, weekly_customers, daily_customers",
+        "dimensions": "department, salesperson, cost_center, metric_time, product__product_category, customer__region, customer__balance_segment",
+        "question": "Can you give me revenue, expense, and profit in 2023?",
+        "result": Query.model_validate(
+            {
+                "metrics": [
+                    {"name": "total_revenue"},
+                    {"name": "total_expense"},
+                    {"name": "total_profit"},
+                ],
+                "where": [
+                    {
+                        "sql": "year({{{{ TimeDimension('metric_time', 'DAY') }}}}) = 2023"
+                    }
+                ],
+            }
+        ),
+    },
+    {
+        "metrics": "total_revenue, total_expense, total_profit, total_customers, monthly_customers, weekly_customers, daily_customers",
+        "dimensions": "department, salesperson, cost_center, metric_time, product__product_category, customer__region, customer__balance_segment",
+        "question": "Can you give me the top 10 sales people by revenue in September 2023?",
+        "result": Query.model_validate(
+            {
+                "metrics": [
+                    {"name": "total_revenue"},
+                ],
+                "groupBy": [
+                    {"name": "salesperson"},
+                ],
+                "where": [
+                    {
+                        "sql": "{{{{ TimeDimension('metric_time', 'DAY') }}}} between '2023-09-01' and '2023-09-30'"
+                    }
+                ],
+                "orderBy": [
+                    {"groupBy": {"name": "total_revenue"}, "descending": True},
+                ],
+                "limit": 10,
+            }
+        ),
+    },
+    {
+        "metrics": "total_revenue, total_expense, total_profit, total_customers, monthly_customers, weekly_customers, daily_customers",
+        "dimensions": "department, salesperson, cost_center, metric_time, product__product_category, customer__region, customer__balance_segment",
+        "question": "Can you give me revenue by salesperson in the first quarter of 2023 where product category is either cars or motorcycles?",
+        "result": Query.model_validate(
+            {
+                "metrics": [
+                    {"name": "total_revenue"},
+                ],
+                "groupBy": [
+                    {"name": "salesperson"},
+                ],
+                "where": [
+                    {
+                        "sql": "{{{{ TimeDimension('metric_time', 'DAY') }}}} between '2023-01-01' and '2023-03-31'"
+                    },
+                    {
+                        "sql": "{{{{ Dimension('product__product_category') }}}} in ('cars', 'motorcycles')"
+                    },
+                ],
+            }
+        ),
+    },
 ]
