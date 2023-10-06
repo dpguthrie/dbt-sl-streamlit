@@ -40,6 +40,26 @@ from llm.schema import Query
 from queries import GRAPHQL_QUERIES
 
 
+st.write("# LLM Query Builder")
+
+st.markdown(
+    "Input your OpenAI API Key below and ask questions abour your data.\n\n**This is highly experimental** "
+    "and not meant to handle every edge case.  Please feel free to report any issues (or open up a PR to fix)."
+)
+
+api_key = st.text_input(
+    label="OpenAI API Key",
+    type="password",
+    value=st.session_state.get("openai_api_key", ""),
+    placeholder="Enter your OpenAI API Key",
+)
+
+question = st.text_input(
+    label="Ask a question",
+    placeholder="e.g. What is total revenue?",
+    key="question",
+)
+
 metrics = ", ".join(list(st.session_state.metric_dict.keys()))
 dimensions = ", ".join(list(st.session_state.dimension_dict.keys()))
 
@@ -59,26 +79,6 @@ prompt = FewShotPromptTemplate(
     suffix="Metrics: {metrics}\nDimensions: {dimensions}\nQuestion: {question}\nResult:\n",
     input_variables=["metrics", "dimensions", "question"],
     partial_variables={"format_instructions": parser.get_format_instructions()},
-)
-
-st.write("# LLM Query Builder")
-
-st.markdown(
-    "Input your OpenAI API Key below and ask questions abour your data.\n\n**This is highly experimental** "
-    "and not meant to handle every edge case.  Please feel free to report any issues (or open up a PR to fix)."
-)
-
-api_key = st.text_input(
-    label="OpenAI API Key",
-    type="password",
-    key="openai_api_key",
-    placeholder="Enter your OpenAI API Key",
-)
-
-question = st.text_input(
-    label="Ask a question",
-    placeholder="e.g. What is total revenue?",
-    key="question",
 )
 
 if question:
