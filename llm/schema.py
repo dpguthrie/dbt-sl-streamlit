@@ -26,6 +26,7 @@ GQL_MAP: Dict = {
         "kwarg": "$orderBy",
         "argument": "[OrderByInput!]!",
     },
+    "limit": {"kwarg": "$limit", "argument": "Int"},
 }
 
 
@@ -100,7 +101,7 @@ class Query(BaseModel):
     def used_inputs(self) -> List[str]:
         inputs = []
         for key in GQL_MAP.keys():
-            if getattr(self, key) is not None and len(getattr(self, key)) > 0:
+            if getattr(self, key) is not None:
                 inputs.append(key)
 
         return inputs
@@ -128,5 +129,10 @@ class Query(BaseModel):
             if isinstance(data, list):
                 variables[input] = [m.model_dump(exclude_none=True) for m in data]
             else:
-                variables[input] = getattr(self, input).model_dump(exclude_none=True)
+                try:
+                    variables[input] = getattr(self, input).model_dump(
+                        exclude_none=True
+                    )
+                except AttributeError:
+                    variables[input] = getattr(self, input)
         return variables
