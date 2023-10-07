@@ -16,15 +16,15 @@ GQL_MAP: Dict = {
     },
     "groupBy": {
         "kwarg": "$groupBy",
-        "argument": "[GroupByInput!]!",
+        "argument": "[GroupByInput!]",
     },
     "where": {
         "kwarg": "$where",
-        "argument": "[WhereInput!]!",
+        "argument": "[WhereInput!]",
     },
     "orderBy": {
         "kwarg": "$orderBy",
-        "argument": "[OrderByInput!]!",
+        "argument": "[OrderByInput!]",
     },
     "limit": {"kwarg": "$limit", "argument": "Int"},
 }
