@@ -37,9 +37,8 @@ def get_connection_attributes(uri):
     except KeyError:
         st.error("Token is missing from the JDBC URL.")
     else:
-        attrs = ConnAttr(
+        return ConnAttr(
             host=parsed.path.replace("arrow-flight-sql", "https").replace(":443", ""),
             params=params,
             auth_header=f"Bearer {token}",
         )
-        return attrs
