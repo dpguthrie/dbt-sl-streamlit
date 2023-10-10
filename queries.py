@@ -1,5 +1,5 @@
 GRAPHQL_QUERIES = {
-    'metrics': '''
+    "metrics": """
 query GetMetrics($environmentId: BigInt!) {
   metrics(environmentId: $environmentId) {
     description
@@ -13,9 +13,9 @@ query GetMetrics($environmentId: BigInt!) {
     }
   }
 }
-    ''',
-    'dimensions': '''
-query GetDimensions($environmentId: BigInt!, $metrics: [String!]!) {
+    """,
+    "dimensions": """
+query GetDimensions($environmentId: BigInt!, $metrics: [MetricInput!]!) {
   dimensions(environmentId: $environmentId, metrics: $metrics) {
     description
     expr
@@ -41,9 +41,9 @@ query GetDimensions($environmentId: BigInt!, $metrics: [String!]!) {
     }
   }
 }
-    ''',
-    'dimension_values': '''
-mutation GetDimensionValues($environmentId: BigInt!, $groupBy: [String!]!, $metrics: [String!]!) {
+    """,
+    "dimension_values": """
+mutation GetDimensionValues($environmentId: BigInt!, $groupBy: [GroupByInput!]!, $metrics: [MetricInput!]!) {
   createDimensionValuesQuery(
     environmentId: $environmentId
     groupBy: $groupBy
@@ -52,9 +52,9 @@ mutation GetDimensionValues($environmentId: BigInt!, $groupBy: [String!]!, $metr
     queryId
   }
 }
-    ''',
-    'metric_for_dimensions': '''
-query GetMetricsForDimensions($environmentId: BigInt!, $dimensions: [String!]!) {
+    """,
+    "metric_for_dimensions": """
+query GetMetricsForDimensions($environmentId: BigInt!, $dimensions: [GroupByInput!]) {
   metricsForDimensions(environmentId: $environmentId, dimensions: $dimensions) {
     description
     name
@@ -62,8 +62,8 @@ query GetMetricsForDimensions($environmentId: BigInt!, $dimensions: [String!]!) 
     type
   }
 }
-    ''',
-    'create_query': '''
+    """,
+    "create_query": """
 mutation CreateQuery({arguments}) {{
   createQuery(
     {kwargs}
@@ -71,8 +71,8 @@ mutation CreateQuery({arguments}) {{
     queryId
   }}
 }}
-    ''',
-    'get_results': '''
+    """,
+    "get_results": """
 query GetResults($environmentId: BigInt!, $queryId: String!) {
   query(environmentId: $environmentId, queryId: $queryId) {
     arrowResult
@@ -82,14 +82,14 @@ query GetResults($environmentId: BigInt!, $queryId: String!) {
     status
   }
 }
-    ''',
-    'queryable_granularities': '''
-query GetQueryableGranularities($environmentId: BigInt!, $metrics:[String!]!) {
+    """,
+    "queryable_granularities": """
+query GetQueryableGranularities($environmentId: BigInt!, $metrics:[MetricInput!]!) {
   queryableGranularities(environmentId: $environmentId, metrics: $metrics)
 }
-    ''',
-    'metrics_for_dimensions': '''
-query GetMetricsForDimensions($environmentId: BigInt!, $dimensions:[String!]!) {
+    """,
+    "metrics_for_dimensions": """
+query GetMetricsForDimensions($environmentId: BigInt!, $dimensions:[GroupByInput!]!) {
   metricsForDimensions(environmentId: $environmentId, dimensions: $dimensions) {
     description
     name
@@ -100,25 +100,25 @@ query GetMetricsForDimensions($environmentId: BigInt!, $dimensions:[String!]!) {
     }
   }
 }
-    '''
+    """,
 }
 
 JDBC_QUERIES = {
-    'metrics': '''
+    "metrics": """
 select *
 from {{
     semantic_layer.metrics()
 }}
-''',
-    'dimensions': '''
+""",
+    "dimensions": """
 select *
 from {{{{
     semantic_layer.dimensions(
         metrics={metrics}
     )
 }}}}
-''',
-    'dimension_values': '''
+""",
+    "dimension_values": """
 select *
 from {{{{
     semantic_layer.dimension_values(
@@ -126,21 +126,21 @@ from {{{{
         group_by='{dimension}'
     )
 }}}}
-''',
-    'queryable_granularities': '''
+""",
+    "queryable_granularities": """
 select *
 from {{{{
     semantic_layer.queryable_granularities(
         metrics={metrics}
     )
 }}}}
-''',
-    'metrics_for_dimensions': '''
+""",
+    "metrics_for_dimensions": """
 select *
 from {{{{
     semantic_layer.metrics_for_dimensions(
         group_by={dimensions}
     )
 }}}}
-'''
+""",
 }
