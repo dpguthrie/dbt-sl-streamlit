@@ -7,6 +7,14 @@ from urllib.parse import parse_qs, urlparse
 import requests
 import streamlit as st
 
+# first party
+from helpers import to_arrow_table
+from queries import GRAPHQL_QUERIES
+from schema import Query
+
+
+RESULT_STATUSES = ["pending", "running", "compiled", "failed", "successful"]
+
 
 @dataclass
 class ConnAttr:
@@ -42,3 +50,42 @@ def get_connection_attributes(uri):
             params=params,
             auth_header=f"Bearer {token}",
         )
+
+
+def get_query_results(payload: Dict):
+    progress_bar = st.progress(0, "Submitting Query ... ")
+    json = submit_request(st.session_state.conn, payload)
+    try:
+        query_id = json["data"]["createQuery"]["queryId"]
+    except TypeError:
+        progress_bar.progress(80, "Query Failed!")
+        st.error(json["errors"][0]["message"])
+        st.stop()
+    while True:
+        graphql_query = GRAPHQL_QUERIES["get_results"]
+        results_payload = {"variables": {"queryId": query_id}, "query": graphql_query}
+        json = submit_request(st.session_state.conn, results_payload)
+        try:
+            data = json["data"]["query"]
+        except TypeError:
+            progress_bar.progress(80, "Query Failed!")
+            st.error(json["errors"][0]["message"])
+            st.stop()
+        else:
+            status = data["status"].lower()
+            if status == "successful":
+                progress_bar.progress(100, "Query Successful!")
+                break
+            elif status == "failed":
+                progress_bar.progress(
+                    (RESULT_STATUSES.index(status) + 1) * 20, "red:Query Failed!"
+                )
+                st.error(data["error"])
+                st.stop()
+            else:
+                progress_bar.progress(
+                    (RESULT_STATUSES.index(status) + 1) * 20,
+                    f"Query is {status.capitalize()}...",
+                )
+
+    return data
