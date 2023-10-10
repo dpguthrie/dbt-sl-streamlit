@@ -1,5 +1,4 @@
 # third party
-import plotly.express as px
 import streamlit as st
 
 st.set_page_config(
@@ -21,24 +20,14 @@ if "metric_dict" not in st.session_state:
 
 
 # first party
-from chart import create_chart
-from client import submit_request
-from helpers import get_shared_elements, to_arrow_table
-from queries import GRAPHQL_QUERIES
-from query import SemanticLayerQuery
-
-
-def style_progress_bar(status: str):
-    status_map = {"failed": "#FF2B2B", "successful": "00FF74"}
-    st.markdown(
-        f"""
-        <style>
-            .st-hq {{
-                background-color: {status_map[status]};
-            }}
-        </style>""",
-        unsafe_allow_html=True,
-    )
+from client import get_query_results
+from helpers import (
+    create_graphql_code,
+    create_tabs,
+    get_shared_elements,
+    to_arrow_table,
+)
+from schema import QueryLoader
 
 
 def get_time_length(interval):
@@ -106,38 +95,48 @@ all_dimensions = [
 ]
 unique_dimensions = get_shared_elements(all_dimensions)
 
+# A cumulative metric needs to always be viewed over time so we select metric_time
+is_cumulative_metric = any(
+    [
+        v["type"].lower() == "cumulative"
+        for k, v in st.session_state.metric_dict.items()
+        if k in st.session_state.get("selected_metrics", [])
+    ]
+)
+
+default_options = ["metric_time"] if is_cumulative_metric else None
+
 col2.multiselect(
     label="Select Dimension(s)",
     options=sorted(unique_dimensions),
-    default=None,
+    default=default_options,
     key="selected_dimensions",
     placeholder="Select a dimension",
 )
 
 # Only add grain if a time dimension has been selected
-if len(unique_dimensions) > 0:
-    dimension_types = set(
-        [
-            st.session_state.dimension_dict[dim]["type"].lower()
-            for dim in st.session_state.selected_dimensions
-        ]
+dimension_types = set(
+    [
+        st.session_state.dimension_dict[dim]["type"].lower()
+        for dim in st.session_state.get("selected_dimensions", [])
+    ]
+)
+if "time" in dimension_types or is_cumulative_metric:
+    col1, col2 = st.columns(2)
+    grains = [
+        st.session_state.metric_dict[metric]["queryableGranularities"]
+        for metric in st.session_state.selected_metrics
+    ]
+    col1.selectbox(
+        label="Select Grain",
+        options=sort_by_time_length(
+            [g.strip().lower() for g in get_shared_elements(grains)]
+        ),
+        key="selected_grain",
     )
-    if "time" in dimension_types:
-        col1, col2 = st.columns(2)
-        grains = [
-            st.session_state.metric_dict[metric]["queryableGranularities"]
-            for metric in st.session_state.selected_metrics
-        ]
-        col1.selectbox(
-            label="Select Grain",
-            options=sort_by_time_length(
-                [g.strip().lower() for g in get_shared_elements(grains)]
-            ),
-            key="selected_grain",
-        )
 
 # Add sections for filtering and ordering
-with st.expander("Filtering:"):
+with st.expander("Filtering:", expanded=True):
     if st.session_state.where_items == 0:
         st.button("Add Filters", on_click=add_where_state, key="static_filter_add")
     else:
@@ -183,7 +182,7 @@ with st.expander("Filtering:"):
                 )
 
 valid_orders = st.session_state.selected_metrics + st.session_state.selected_dimensions
-with st.expander("Ordering:"):
+with st.expander("Ordering:", expanded=True):
     if st.session_state.order_items == 0:
         st.button("Add Ordering", on_click=add_order_state, key="static_order_add")
     else:
@@ -222,82 +221,24 @@ col1.number_input(
 )
 col1.caption("If set to 0, no limit will be applied")
 
-slq = SemanticLayerQuery(st.session_state)
-jdbc_query = slq.jdbc_query
-graphql_query = slq.graphql_query
+query = QueryLoader(st.session_state).create()
 with st.expander("View API Request", expanded=False):
     tab1, tab2 = st.tabs(["GraphQL", "JDBC"])
-    code = f"""
-import requests
-
-
-url = '{st.session_state.conn.host}/api/graphql'
-query = \'\'\'{graphql_query}\'\'\'
-payload = {{'query': query, 'variables': {slq._gql["variables"]}}}
-response = requests.post(url, json=payload, headers={{'Authorization': 'Bearer ***'}})
-    """
-    tab1.code(code, language="python")
-    tab2.code(jdbc_query, language="sql")
+    python_code = create_graphql_code(query)
+    tab1.code(python_code, language="python")
+    tab2.code(query.jdbc_query, language="sql")
 
 if st.button("Submit Query"):
-    statuses = ["pending", "running", "compiled", "failed", "successful"]
-
     if len(st.session_state.selected_metrics) == 0:
         st.warning("You must select at least one metric!")
         st.stop()
 
-    progress_bar = st.progress(0, "Submitting Query...")
-    payload = {"query": graphql_query, "variables": slq._gql["variables"]}
-    json = submit_request(st.session_state.conn, payload)
-    try:
-        query_id = json["data"]["createQuery"]["queryId"]
-    except TypeError:
-        style_progress_bar("failed")
-        progress_bar.progress(80, "Query Failed!")
-        st.error(json["errors"][0]["message"])
-        st.stop()
-    while True:
-        query = GRAPHQL_QUERIES["get_results"]
-        payload = {"variables": {"queryId": query_id}, "query": query}
-        json = submit_request(st.session_state.conn, payload)
-        try:
-            data = json["data"]["query"]
-        except TypeError:
-            style_progress_bar("failed")
-            progress_bar.progress(80, "Query Failed!")
-            st.error(json["errors"][0]["message"])
-            st.stop()
-        else:
-            status = data["status"].lower()
-            if status == "successful":
-                style_progress_bar("successful")
-                progress_bar.progress(100, "Query Successful!")
-                break
-            elif status == "failed":
-                progress_bar.progress(
-                    (statuses.index(status) + 1) * 20, "red:Query Failed!"
-                )
-                st.error(data["error"])
-                st.stop()
-            else:
-                progress_bar.progress(
-                    (statuses.index(status) + 1) * 20,
-                    f"Query is {status.capitalize()}...",
-                )
-
+    payload = {"query": query.gql, "variables": query.variables}
+    data = get_query_results(payload)
     df = to_arrow_table(data["arrowResult"])
     df.columns = [col.lower() for col in df.columns]
-    st.session_state.slq = slq
-    st.session_state.df = df
-    st.session_state.compiled_sql = data["sql"]
+    st.session_state.query_qm = query
+    st.session_state.df_qm = df
+    st.session_state.compiled_sql_qm = data["sql"]
 
-if "df" in st.session_state and "slq" in st.session_state:
-    tab1, tab2, tab3 = st.tabs(["SQL", "Data", "Chart"])
-    with tab1:
-        st.code(st.session_state.compiled_sql, language="sql")
-
-    with tab2:
-        st.dataframe(st.session_state.df, use_container_width=True)
-
-    with tab3:
-        create_chart(st.session_state.df, st.session_state.slq)
+create_tabs(st.session_state, "qm")

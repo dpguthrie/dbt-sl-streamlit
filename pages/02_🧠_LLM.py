@@ -1,4 +1,4 @@
-# first party
+# stdlib
 import os
 
 # third party
@@ -32,12 +32,21 @@ if "metric_dict" not in st.session_state:
 
 
 # first party
-from client import submit_request
-from helpers import to_arrow_table
+from client import get_query_results
+from helpers import create_graphql_code, create_tabs, to_arrow_table
 from llm.examples import EXAMPLES
 from llm.prompt import EXAMPLE_PROMPT
-from llm.schema import Query
-from queries import GRAPHQL_QUERIES
+from schema import Query
+
+
+def set_openai_api_key():
+    st.session_state._openai_api_key = st.session_state.openai_api_key
+
+
+def set_question():
+    previous_question = st.session_state.get("_question", None)
+    st.session_state._question = st.session_state.question
+    st.session_state.refresh = not previous_question == st.session_state._question
 
 
 st.write("# LLM Query Builder")
@@ -50,14 +59,17 @@ st.markdown(
 api_key = st.text_input(
     label="OpenAI API Key",
     type="password",
-    value=st.session_state.get("openai_api_key", ""),
+    value=st.session_state.get("_openai_api_key", ""),
     placeholder="Enter your OpenAI API Key",
+    key="openai_api_key",
+    on_change=set_openai_api_key,
 )
 
 question = st.text_input(
     label="Ask a question",
     placeholder="e.g. What is total revenue?",
     key="question",
+    on_change=set_question,
 )
 
 metrics = ", ".join(list(st.session_state.metric_dict.keys()))
@@ -81,15 +93,13 @@ prompt = FewShotPromptTemplate(
     partial_variables={"format_instructions": parser.get_format_instructions()},
 )
 
-if question:
-    input = prompt.format(
-        metrics=metrics,
-        dimensions=dimensions,
-        question=question,
-    )
+if question and st.session_state.get("refresh", False):
+    if st.session_state.get("_openai_api_key", None) is None:
+        st.warning("Please enter your OpenAI API Key")
+        st.stop()
     try:
         llm = OpenAI(
-            openai_api_key=os.environ.get("OPENAI_API_KEY", api_key),
+            openai_api_key=st.session_state._openai_api_key,
             model_name="text-davinci-003",
             temperature=0,
         )
@@ -104,58 +114,16 @@ if question:
     except OutputParserException as e:
         st.error(e)
         st.stop()
-    statuses = ["pending", "running", "compiled", "failed", "successful"]
-    code = f"""
-import requests
-
-
-url = '{st.session_state.conn.host}/api/graphql'
-query = \'\'\'{query.gql}\'\'\'
-payload = {{'query': query, 'variables': {query.variables}}}
-response = requests.post(url, json=payload, headers={{'Authorization': 'Bearer ***'}})
-    """
+    python_code = create_graphql_code(query)
     with st.expander("View API Request", expanded=False):
-        st.code(code, language="python")
-    progress_bar = st.progress(0, "Submitting Query ... ")
+        st.code(python_code, language="python")
     payload = {"query": query.gql, "variables": query.variables}
-    json = submit_request(st.session_state.conn, payload)
-    try:
-        query_id = json["data"]["createQuery"]["queryId"]
-    except TypeError:
-        progress_bar.progress(80, "Query Failed!")
-        st.error(json["errors"][0]["message"])
-        st.stop()
-    while True:
-        query = GRAPHQL_QUERIES["get_results"]
-        payload = {"variables": {"queryId": query_id}, "query": query}
-        json = submit_request(st.session_state.conn, payload)
-        try:
-            data = json["data"]["query"]
-        except TypeError:
-            progress_bar.progress(80, "Query Failed!")
-            st.error(json["errors"][0]["message"])
-            st.stop()
-        else:
-            status = data["status"].lower()
-            if status == "successful":
-                progress_bar.progress(100, "Query Successful!")
-                break
-            elif status == "failed":
-                progress_bar.progress(
-                    (statuses.index(status) + 1) * 20, "red:Query Failed!"
-                )
-                st.error(data["error"])
-                st.stop()
-            else:
-                progress_bar.progress(
-                    (statuses.index(status) + 1) * 20,
-                    f"Query is {status.capitalize()}...",
-                )
-
+    data = get_query_results(payload)
     df = to_arrow_table(data["arrowResult"])
     df.columns = [col.lower() for col in df.columns]
-    tab1, tab2 = st.tabs(["SQL", "Data"])
-    with tab1:
-        st.code(data["sql"], language="sql")
-    with tab2:
-        st.dataframe(df, use_container_width=True)
+    st.session_state.query_llm = query
+    st.session_state.df_llm = df
+    st.session_state.compiled_sql_llm = data["sql"]
+
+st.session_state.refresh = False
+create_tabs(st.session_state, "llm")
