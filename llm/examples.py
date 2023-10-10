@@ -1,5 +1,5 @@
 # first party
-from llm.schema import Query
+from schema import Query
 
 
 EXAMPLES = [
