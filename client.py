@@ -23,14 +23,19 @@ class ConnAttr:
     auth_header: str  # "Bearer dbts_thisismyprivateservicetoken"
 
 
-def submit_request(_conn_attr: ConnAttr, payload: Dict) -> Dict:
+def submit_request(_conn_attr: ConnAttr, payload: Dict, source: str = None) -> Dict:
     # TODO: This should take into account multi-region and single-tenant
     url = f"{_conn_attr.host}/api/graphql"
     if not "variables" in payload:
         payload["variables"] = {}
     payload["variables"]["environmentId"] = _conn_attr.params["environmentid"]
     r = requests.post(
-        url, json=payload, headers={"Authorization": _conn_attr.auth_header}
+        url,
+        json=payload,
+        headers={
+            "Authorization": _conn_attr.auth_header,
+            "X-dbt-partner-source": source or "streamlit",
+        },
     )
     return r.json()
 
@@ -52,9 +57,9 @@ def get_connection_attributes(uri):
         )
 
 
-def get_query_results(payload: Dict):
+def get_query_results(payload: Dict, source: str = None):
     progress_bar = st.progress(0, "Submitting Query ... ")
-    json = submit_request(st.session_state.conn, payload)
+    json = submit_request(st.session_state.conn, payload, source=source)
     try:
         query_id = json["data"]["createQuery"]["queryId"]
     except TypeError:

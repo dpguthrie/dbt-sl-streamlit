@@ -118,7 +118,7 @@ if question and st.session_state.get("refresh", False):
     with st.expander("View API Request", expanded=False):
         st.code(python_code, language="python")
     payload = {"query": query.gql, "variables": query.variables}
-    data = get_query_results(payload)
+    data = get_query_results(payload, source="streamlit-llm")
     df = to_arrow_table(data["arrowResult"])
     df.columns = [col.lower() for col in df.columns]
     st.session_state.query_llm = query
