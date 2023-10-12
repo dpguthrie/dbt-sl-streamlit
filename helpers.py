@@ -56,10 +56,10 @@ def create_tabs(state: st.session_state, suffix: str) -> None:
         sql = getattr(state, f"compiled_sql_{suffix}")
         df = getattr(state, f"df_{suffix}")
         query = getattr(state, f"query_{suffix}")
-        tab1, tab2, tab3 = st.tabs(["SQL", "Data", "Chart"])
+        tab1, tab2, tab3 = st.tabs(["Chart", "Data", "SQL"])
         with tab1:
-            st.code(sql, language="sql")
+            create_chart(df, query)
         with tab2:
             st.dataframe(df, use_container_width=True)
         with tab3:
-            create_chart(df, query)
+            st.code(sql, language="sql")
