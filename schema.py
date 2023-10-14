@@ -151,7 +151,7 @@ class Query(BaseModel):
         text = f"metrics={[m.name for m in self.metrics]}"
         if self.groupBy is not None:
             group_by = [
-                f"{g.name}__{g.grain}" if g.grain is not None else g.name
+                f"{g.name}__{g.grain.lower()}" if g.grain is not None else g.name
                 for g in self.groupBy
             ]
             text += f",\n        group_by={group_by}"
@@ -163,7 +163,7 @@ class Query(BaseModel):
             for order in self.orderBy:
                 obj = order.metric if order.metric else order.groupBy
                 if hasattr(obj, "grain") and obj.grain is not None:
-                    name = f"{obj.name}__{obj.grain}"
+                    name = f"{obj.name}__{obj.grain.lower()}"
                 else:
                     name = obj.name
                 if order.descending:
