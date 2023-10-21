@@ -13,7 +13,7 @@ EXAMPLES = [
                 "groupBy": [{"name": "metric_time", "grain": "MONTH"}],
                 "where": [
                     {
-                        "sql": "{{ Dimension('customer__customer_country') }} = 'United States'"
+                        "sql": "{{ Dimension('customer__customer_country') }} ilike 'United States'"
                     }
                 ],
             }
@@ -33,7 +33,7 @@ EXAMPLES = [
                     {"name": "avg_cost_per_cust"},
                 ],
                 "groupBy": [{"name": "metric_time", "grain": "QUARTER"}],
-                "where": [{"sql": "{{ Dimension('customer__city') }} = 'Denver'"}],
+                "where": [{"sql": "{{ Dimension('customer__city') }} ilike 'Denver'"}],
                 "orderBy": [
                     {"metric": {"name": "avg_sales_per_cust"}, "descending": True}
                 ],
@@ -179,7 +179,7 @@ EXAMPLES = [
                         "sql": "{{ TimeDimension('metric_time', 'DAY') }} between '2023-01-01' and '2023-03-31'"
                     },
                     {
-                        "sql": "{{ Dimension('product__product_category') }} in ('cars', 'motorcycles')"
+                        "sql": "{{ Dimension('product__product_category') }} ilike any ('cars', 'motorcycles')"
                     },
                 ],
             }
@@ -204,7 +204,7 @@ EXAMPLES = [
                 ],
                 "where": [
                     {
-                        "sql": "{{ Dimension('geography__country, entity_path=['customer']) }} = 'United States'"
+                        "sql": "{{ Dimension('geography__country, entity_path=['customer']) }} ilike 'United States'"
                     },
                 ],
             }
