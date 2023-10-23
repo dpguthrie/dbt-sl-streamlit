@@ -71,6 +71,10 @@ class GroupByInput(BaseModel):
 
 
 class OrderByInput(BaseModel):
+    """
+    Important note:  Only one of metric or groupBy is allowed to be specified
+    """
+
     metric: Optional[MetricInput] = None
     groupBy: Optional[GroupByInput] = None
     descending: Optional[bool] = None
