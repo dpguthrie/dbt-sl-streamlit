@@ -100,7 +100,7 @@ if question and st.session_state.get("refresh", False):
     try:
         llm = OpenAI(
             openai_api_key=st.session_state._openai_api_key,
-            model_name="text-davinci-003",
+            model_name="gpt-3.5-turbo-instruct",
             temperature=0,
         )
     except ValidationError as e:
