@@ -1,16 +1,14 @@
 # stdlib
-import os
 
 # third party
 import streamlit as st
 from langchain.chains import LLMChain
-from langchain.prompts import PromptTemplate
 from langchain.llms import OpenAI
 from langchain.output_parsers import PydanticOutputParser
+from langchain.prompts import PromptTemplate
 from langchain.prompts.few_shot import FewShotPromptTemplate
 from langchain.schema.output_parser import OutputParserException
 from pydantic.v1.error_wrappers import ValidationError
-
 
 st.set_page_config(
     page_title="dbt Semantic Layer - View Metrics",
@@ -85,9 +83,11 @@ prompt_example = PromptTemplate(
 prompt = FewShotPromptTemplate(
     examples=EXAMPLES,
     example_prompt=prompt_example,
-    prefix="""Given a question involving a user's data, transform it into a structured object.
-    {format_instructions}
-    """,
+    prefix="""Given a question involving a user's data, transform it into a structured query object.
+            It's important to remember that in the 'orderBy' field, only one of 'metric' or 'groupBy' should be set, not both.
+            Here are some examples showing how to correctly and incorrectly structure a query based on a user's question.
+            {format_instructions}
+        """,
     suffix="Metrics: {metrics}\nDimensions: {dimensions}\nQuestion: {question}\nResult:\n",
     input_variables=["metrics", "dimensions", "question"],
     partial_variables={"format_instructions": parser.get_format_instructions()},
@@ -100,7 +100,7 @@ if question and st.session_state.get("refresh", False):
     try:
         llm = OpenAI(
             openai_api_key=st.session_state._openai_api_key,
-            model_name="gpt-3.5-turbo-instruct",
+            model_name="gpt-3.5-turbo-1106",
             temperature=0,
         )
     except ValidationError as e:
