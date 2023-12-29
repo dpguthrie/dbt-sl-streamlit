@@ -1,7 +1,6 @@
 # first party
 from schema import Query
 
-
 EXAMPLES = [
     {
         "metrics": "total_revenue, total_expense, total_profit, monthly_customers",
@@ -164,6 +163,33 @@ EXAMPLES = [
     },
     {
         "metrics": "total_revenue, total_expense, total_profit, total_customers, monthly_customers, weekly_customers, daily_customers",
+        "dimensions": "department, salesperson, cost_center, metric_time, product__product_category, customer__nation, customer__balance_segment",
+        "question": "What are the top 5 nations by total profit in 2023?",
+        "result": Query.model_validate(
+            {
+                "metrics": [
+                    {"name": "total_profit"},
+                ],
+                "groupBy": [
+                    {"name": "customer__nation"},
+                ],
+                "where": [
+                    {
+                        "sql": "{{ TimeDimension('metric_time', 'DAY') }} between '2023-01-01' and '2023-12-31'"
+                    }
+                ],
+                "orderBy": [
+                    {"metric": {"name": "total_profit"}, "descending": True},
+                ],
+                "limit": 5,
+            }
+        )
+        .model_dump_json()
+        .replace("{", "{{")
+        .replace("}", "}}"),
+    },
+    {
+        "metrics": "total_revenue, total_expense, total_profit, total_customers, monthly_customers, weekly_customers, daily_customers",
         "dimensions": "department, salesperson, cost_center, metric_time, product__product_category, customer__region, customer__balance_segment",
         "question": "Can you give me revenue by salesperson in the first quarter of 2023 where product category is either cars or motorcycles?",
         "result": Query.model_validate(
@@ -227,7 +253,7 @@ EXAMPLES = [
                 ],
                 "where": [
                     {
-                        "sql": "{{ Dimension('customer__market_segment') }} = 'enterprise'"
+                        "sql": "{{ Dimension('customer__market_segment') }} ilike 'enterprise'"
                     },
                     {
                         "sql": "date_trunc('month', {{ TimeDimension('metric_time', 'DAY') }}) = date_trunc('month', dateadd('month', -1, current_date))"
@@ -260,6 +286,57 @@ EXAMPLES = [
                         "sql": "{{ TimeDimension('metric_time', 'DAY') }} between '2022-01-01' and '2022-12-31'"
                     },
                 ],
+            }
+        )
+        .model_dump_json()
+        .replace("{", "{{")
+        .replace("}", "}}"),
+    },
+    {
+        "metrics": "total_revenue, total_expense, total_profit, total_customers, monthly_customers, weekly_customers, daily_customers",
+        "dimensions": "department, salesperson, cost_center, metric_time, product__product_category, customer_order__customer__customer_market_segment, customer_order__clerk_on_order",
+        "question": "Who is the top clerk by total profit in 2023 in the automobile market segment?",
+        "incorrect_result": Query.model_validate(
+            {
+                "metrics": [
+                    {"name": "total_profit"},
+                ],
+                "groupBy": [
+                    {"name": "customer_order__clerk_on_order"},
+                ],
+                "where": [
+                    {"sql": "year({{ TimeDimension('metric_time', 'DAY') }}) = 2023"},
+                    {
+                        "sql": "{{ Dimension('customer_order__customer__customer_market_segment') }} ilike 'automobile'"
+                    },
+                ],
+                "orderBy": [
+                    {"metric": {"name": "total_profit"}, "descending": True},
+                ],
+                "limit": 1,
+            }
+        )
+        .model_dump_json()
+        .replace("{", "{{")
+        .replace("}", "}}"),
+        "result": Query.model_validate(
+            {
+                "metrics": [
+                    {"name": "total_profit"},
+                ],
+                "groupBy": [
+                    {"name": "customer_order__clerk_on_order"},
+                ],
+                "where": [
+                    {"sql": "year({{ TimeDimension('metric_time', 'DAY') }}) = 2023"},
+                    {
+                        "sql": "{{ Dimension('customer__customer_market_segment') }} ilike 'automobile'"
+                    },
+                ],
+                "orderBy": [
+                    {"metric": {"name": "total_profit"}, "descending": True},
+                ],
+                "limit": 1,
             }
         )
         .model_dump_json()
