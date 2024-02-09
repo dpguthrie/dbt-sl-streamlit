@@ -1,6 +1,6 @@
 # stdlib
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 # third party
 import streamlit as st
@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field, model_validator
 
 # first party
 from queries import GRAPHQL_QUERIES
-
 
 GQL_MAP: Dict = {
     "metrics": {
@@ -204,6 +203,33 @@ from {{{{
                 "kwargs": ",\n    ".join([f"{k}: {v}" for k, v in kwargs.items()]),
             }
         )
+
+    @property
+    def sdk(self) -> Dict[str, Any]:
+        def str_or_dict(item):
+            item_dict = item.model_dump(exclude_none=True)
+            keys = len(item_dict.keys())
+            if keys == 1:
+                return item_dict["name"]
+
+            return item_dict
+
+        def inputs_to_dict(inputs):
+            return [str_or_dict(i) for i in inputs]
+
+        return {
+            "metrics": inputs_to_dict(self.metrics) if self.metrics else [],
+            "group_by": inputs_to_dict(self.groupBy) if self.groupBy else [],
+            "where": [w.sql for w in self.where] if self.where else [],
+            "order_by": [
+                {
+                    "name": o.metric.name if o.metric else o.groupBy.name,
+                    "desc": o.descending if o.descending else False,
+                }
+                for o in self.orderBy or []
+            ],
+            "limit": self.limit if self.limit else None,
+        }
 
     @property
     def variables(self) -> Dict[str, List[Any]]:
