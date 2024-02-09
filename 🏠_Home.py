@@ -1,8 +1,6 @@
 # stdlib
-import json
 
 # third party
-import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -10,49 +8,52 @@ import streamlit.components.v1 as components
 from client import get_connection_attributes, submit_request
 from queries import GRAPHQL_QUERIES
 
-        
+
 def prepare_app():
-    
-    with st.spinner(f'Gathering Metrics...'):
-        payload = {'query': GRAPHQL_QUERIES['metrics']}
+
+    with st.spinner("Gathering Metrics..."):
+        payload = {"query": GRAPHQL_QUERIES["metrics"]}
         json = submit_request(st.session_state.conn, payload)
         try:
-            metrics = json['data']['metrics']
+            metrics = json["data"]["metrics"]
         except TypeError:
-            
+
             # `data` is None and there may be an error
             try:
-                error = json['errors'][0]['message']
+                error = json["errors"][0]["message"]
                 st.error(error)
             except (KeyError, TypeError):
                 st.warning(
-                    'No metrics returned.  Ensure your project has metrics defined '
-                    'and a production job has been run successfully.'
+                    "No metrics returned.  Ensure your project has metrics defined "
+                    "and a production job has been run successfully."
                 )
         else:
-            st.session_state.metric_dict = {m['name']: m for m in metrics}
-            st.session_state.dimension_dict = {dim['name']: dim for metric in metrics for dim in metric['dimensions']}
+            st.session_state.metric_dict = {m["name"]: m for m in metrics}
+            st.session_state.dimension_dict = {
+                dim["name"]: dim for metric in metrics for dim in metric["dimensions"]
+            }
             for metric in st.session_state.metric_dict:
-                st.session_state.metric_dict[metric]['dimensions'] = [
-                    d['name'] for d in st.session_state.metric_dict[metric]['dimensions']
+                st.session_state.metric_dict[metric]["dimensions"] = [
+                    d["name"]
+                    for d in st.session_state.metric_dict[metric]["dimensions"]
                 ]
             if not st.session_state.metric_dict:
                 # Query worked, but nothing returned
                 st.warning(
-                    'No Metrics returned!  Ensure your project has metrics defined '
-                    'and a production job has been run successfully.'
+                    "No Metrics returned!  Ensure your project has metrics defined "
+                    "and a production job has been run successfully."
                 )
             else:
-                st.success('Success!  Explore the rest of the app!')
+                st.success("Success!  Explore the rest of the app!")
 
 
 st.set_page_config(
     page_title="dbt Semantic Layer - Home",
     page_icon="👋",
-    layout='wide',
+    layout="wide",
 )
 
-st.markdown('# Explore the dbt Semantic Layer')
+st.markdown("# Explore the dbt Semantic Layer")
 
 st.markdown(
     """
@@ -69,16 +70,17 @@ st.markdown(
 
 
 jdbc_url = st.text_input(
-    label='JDBC URL',
-    value='',
-    key='jdbc_url',
-    help='JDBC URL is found when configuring the semantic layer at the project level',
+    label="JDBC URL",
+    value="",
+    type="password",
+    key="jdbc_url",
+    help="JDBC URL is found when configuring the semantic layer at the project level",
 )
 
-if st.session_state.jdbc_url != '':
+if st.session_state.jdbc_url != "":
     st.cache_data.clear()
     st.session_state.conn = get_connection_attributes(st.session_state.jdbc_url)
-    if 'conn' in st.session_state and st.session_state.conn is not None:
+    if "conn" in st.session_state and st.session_state.conn is not None:
         prepare_app()
 
 st.markdown(
@@ -95,6 +97,6 @@ st.markdown(
 )
 
 components.html(
-    '''<div style="position: relative; padding-bottom: 77.25321888412017%; height: 0;"><iframe src="https://www.loom.com/embed/90419fc9aa1e4680a43525a386645a96?sid=4c3f76ff-21e5-4a86-82e8-c03489b646d5" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>''',
-    height=1000
+    """<div style="position: relative; padding-bottom: 77.25321888412017%; height: 0;"><iframe src="https://www.loom.com/embed/90419fc9aa1e4680a43525a386645a96?sid=4c3f76ff-21e5-4a86-82e8-c03489b646d5" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>""",
+    height=1000,
 )

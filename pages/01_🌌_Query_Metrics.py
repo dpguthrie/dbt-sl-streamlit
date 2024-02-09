@@ -23,6 +23,7 @@ if "metric_dict" not in st.session_state:
 from client import get_query_results
 from helpers import (
     create_graphql_code,
+    create_python_sdk_code,
     create_tabs,
     get_shared_elements,
     to_arrow_table,
@@ -223,10 +224,12 @@ col1.caption("If set to 0, no limit will be applied")
 
 query = QueryLoader(st.session_state).create()
 with st.expander("View API Request", expanded=False):
-    tab1, tab2 = st.tabs(["GraphQL", "JDBC"])
+    tab1, tab2, tab3 = st.tabs(["GraphQL", "JDBC", "Python SDK"])
     python_code = create_graphql_code(query)
+    sdk_code = create_python_sdk_code(query)
     tab1.code(python_code, language="python")
     tab2.code(query.jdbc_query, language="sql")
+    tab3.code(sdk_code, language="python")
 
 if st.button("Submit Query"):
     if len(st.session_state.selected_metrics) == 0:

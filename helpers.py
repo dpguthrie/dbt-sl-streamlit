@@ -1,6 +1,6 @@
 # stdlib
 import base64
-from typing import Dict, List
+from typing import List
 
 # third party
 import pyarrow as pa
@@ -49,8 +49,27 @@ response = requests.post(url, json=payload, headers={{'Authorization': 'Bearer *
     """
 
 
+def create_python_sdk_code(query: Query) -> str:
+    arguments = query.sdk
+    arguments_str = ",\n".join([f"    {k}={v}" for k, v in arguments.items() if v])
+    return f"""
+from dbtc import dbtCloudClient
+
+# Assumes that DBT_CLOUD_SERVICE_TOKEN is set as env var
+client = dbtCloudClient(environment_id={st.session_state.conn.params['environmentid']})
+qr = client.sl.query(\n{arguments_str}\n)
+
+# result will be a pandas dataframe as a default
+qr.result
+"""
+
+
+def convert_df(df, to="to_csv", index=False):
+    return getattr(df, to)(index=index).encode("utf8")
+
+
 def create_tabs(state: st.session_state, suffix: str) -> None:
-    keys = [f"query", "df", "compiled_sql"]
+    keys = ["query", "df", "compiled_sql"]
     keys_with_suffix = [f"{key}_{suffix}" for key in keys]
     if all(key in state for key in keys_with_suffix):
         sql = getattr(state, f"compiled_sql_{suffix}")
@@ -61,5 +80,9 @@ def create_tabs(state: st.session_state, suffix: str) -> None:
             create_chart(df, query)
         with tab2:
             st.dataframe(df, use_container_width=True)
+            output = convert_df(df)
+            st.download_button(
+                "Download Data", output, "data.csv", "text/csv", key="download-csv"
+            )
         with tab3:
             st.code(sql, language="sql")

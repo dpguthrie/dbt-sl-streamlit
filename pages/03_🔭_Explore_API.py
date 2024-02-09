@@ -1,7 +1,6 @@
 # third party
 import streamlit as st
 
-
 st.set_page_config(
     page_title="dbt Semantic Layer - JDBC API",
     page_icon="🔭",
@@ -25,12 +24,11 @@ from typing import Dict
 
 # third party
 import pandas as pd
-import plotly.express as px
 
 # first party
 from client import submit_request
 from helpers import get_shared_elements, to_arrow_table
-from queries import *
+from queries import GRAPHQL_QUERIES, JDBC_QUERIES
 
 
 def _tabbed_queries(key: str, *, format: Dict = None, variables: Dict = None):
@@ -40,9 +38,7 @@ def _tabbed_queries(key: str, *, format: Dict = None, variables: Dict = None):
         variables = (
             variables.copy()
             if variables is not None
-            else format.copy()
-            if format is not None
-            else {}
+            else format.copy() if format is not None else {}
         )
         variables["environmentId"] = int(st.session_state.conn.params["environmentid"])
         code = f"""
