@@ -80,5 +80,9 @@ def create_tabs(state: st.session_state, suffix: str) -> None:
             create_chart(df, query)
         with tab2:
             st.dataframe(df, use_container_width=True)
+            output = convert_df(df)
+            st.download_button(
+                "Download Data", output, "data.csv", "text/csv", key="download-csv"
+            )
         with tab3:
             st.code(sql, language="sql")
