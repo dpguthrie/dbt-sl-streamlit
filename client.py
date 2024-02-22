@@ -34,7 +34,7 @@ def submit_request(_conn_attr: ConnAttr, payload: Dict, source: str = None) -> D
         json=payload,
         headers={
             "Authorization": _conn_attr.auth_header,
-            "X-dbt-partner-source": source or "streamlit",
+            "x-dbt-partner-source": source or "streamlit",
         },
     )
     return r.json()
