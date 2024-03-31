@@ -1,5 +1,21 @@
+# stdlib
+from datetime import datetime, timedelta
+from typing import Dict
+
 # third party
 import streamlit as st
+
+# first party
+from client import get_query_results
+from helpers import (
+    create_graphql_code,
+    create_python_sdk_code,
+    create_tabs,
+    get_shared_elements,
+    to_arrow_table,
+)
+from queries import GRAPHQL_QUERIES
+from schema import QueryLoader
 
 st.set_page_config(
     page_title="dbt Semantic Layer - View Metrics",
@@ -19,16 +35,80 @@ if "metric_dict" not in st.session_state:
     st.stop()
 
 
-# first party
-from client import get_query_results
-from helpers import (
-    create_graphql_code,
-    create_python_sdk_code,
-    create_tabs,
-    get_shared_elements,
-    to_arrow_table,
-)
-from schema import QueryLoader
+OPERATORS = {
+    "CATEGORICAL": ["IN", "NOT IN", "=", "<>", "LIKE", "ILIKE"],
+    "TIME": ["=", "<>", ">=", "<=", ">", "<", "BETWEEN"],
+}
+
+today = datetime.now()
+
+DEFAULT_DATES = {
+    "first": datetime(today.year, 1, 1),
+    "7": today - timedelta(days=7),
+    "30": today - timedelta(days=30),
+    "90": today - timedelta(days=90),
+    "365": today - timedelta(days=365),
+}
+
+
+def get_time_kwargs(operator: str) -> Dict:
+    if operator == "BETWEEN":
+        value = (DEFAULT_DATES["7"], today)
+    else:
+        value = "today"
+    return {
+        "input": "date_input",
+        "label": "Select Date(s)",
+        "value": value,
+        "format": "YYYY-MM-DD",
+    }
+
+
+def get_categorical_kwargs(dimension: str, operator: str):
+    if operator in ["IN", "NOT IN"]:
+        input = "multiselect"
+    elif operator in ["LIKE", "ILIKE"]:
+        input = "text_input"
+    else:
+        input = "selectbox"
+
+    kwargs = {"input": input}
+    if input != "text_input":
+        payload = {
+            "query": GRAPHQL_QUERIES["dimension_values"],
+            "variables": {
+                "groupBy": [{"name": dimension}],
+                "metrics": [],
+            },
+        }
+        with st.spinner("Retrieving dimension values..."):
+            data = get_query_results(
+                payload, key="createDimensionValuesQuery", progress=False
+            )
+            df = to_arrow_table(data["arrowResult"])
+        kwargs["options"] = sorted(df.iloc[:, 0].tolist())
+        kwargs["label"] = (
+            "Select Option" if input == "selectbox" else "Select Option(s)"
+        )
+    else:
+        kwargs["label"] = "Input text (without single quotes)"
+
+    return kwargs
+
+
+def get_condition_kwargs(dimension: str, operator: str):
+    dimension_type = get_dimension_type(dimension)
+    if dimension_type == "TIME":
+        return get_time_kwargs(operator)
+
+    return get_categorical_kwargs(dimension, operator)
+
+
+def get_dimension_type(dimension: str):
+    try:
+        return st.session_state.dimension_dict[dimension]["type"]
+    except KeyError:
+        return "TIME"
 
 
 def get_time_length(interval):
@@ -150,27 +230,22 @@ with st.expander("Filtering:", expanded=True):
                     key=f"where_column_{i}",
                 )
 
+            dimension = st.session_state[f"where_column_{i}"]
+            dimension_type = get_dimension_type(dimension)
+
             with col2:
                 st.selectbox(
                     label="Operator",
-                    options=[
-                        "=",
-                        ">",
-                        "<",
-                        ">=",
-                        "<=",
-                        "<>",
-                        "BETWEEN",
-                        "LIKE",
-                        "ILIKE",
-                        "IN",
-                        "NOT IN",
-                    ],
+                    options=OPERATORS[dimension_type],
                     key=f"where_operator_{i}",
                 )
 
+            operator = st.session_state[f"where_operator_{i}"]
+
             with col3:
-                st.text_input(label="Condition", value="", key=f"where_condition_{i}")
+                condition_kwargs = get_condition_kwargs(dimension, operator)
+                input = condition_kwargs.pop("input")
+                getattr(st, input)(**condition_kwargs, key=f"where_condition_{i}")
 
             with col4:
                 st.button("Add", on_click=add_where_state, key=f"where_add_{i}")
