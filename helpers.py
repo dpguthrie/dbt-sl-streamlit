@@ -1,5 +1,6 @@
 # stdlib
 import base64
+import json
 from typing import List
 
 # third party
@@ -86,3 +87,49 @@ def create_tabs(state: st.session_state, suffix: str) -> None:
             )
         with tab3:
             st.code(sql, language="sql")
+
+
+def encode_dictionary(d):
+    # Convert the dictionary to a JSON string
+    json_string = json.dumps(d)
+
+    # Convert the JSON string to bytes
+    json_bytes = json_string.encode("utf-8")
+
+    # Encode the bytes using Base64
+    base64_bytes = base64.b64encode(json_bytes)
+
+    # Convert the Base64 bytes back to string for easy storage/transmission
+    base64_string = base64_bytes.decode("utf-8")
+
+    return base64_string
+
+
+def decode_string(s: str):
+    # Convert the Base64 string back to bytes
+    try:
+        base64_bytes = s.encode("utf-8")
+    except AttributeError:
+        return None
+
+    # Decode the Base64 bytes to get back the original bytes
+    json_bytes = base64.b64decode(base64_bytes)
+
+    # Convert bytes back to JSON string
+    json_string = json_bytes.decode("utf-8")
+
+    # Parse the JSON string back to a dictionary
+    d = json.loads(json_string)
+
+    return d
+
+
+def set_context_query_param(params: List[str]):
+    d = {k: st.session_state[k] for k in params if k in st.session_state}
+    encoded = encode_dictionary(d)
+    st.query_params = {"context": encoded}
+
+
+def retrieve_context_query_param():
+    context = st.query_params.get("context", None)
+    return decode_string(context)

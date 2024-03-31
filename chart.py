@@ -6,7 +6,6 @@ import streamlit as st
 # first party
 from schema import Query
 
-
 CHART_TYPE_FIELDS = {
     "line": ["x", "y", "color", "facet_row", "facet_col", "y2"],
     "bar": ["x", "y", "color", "orientation", "barmode", "y2"],
@@ -265,6 +264,7 @@ def create_chart(df, query: Query):
             )
             chart_config["barmode"] = barmode
 
+    st.session_state.chart_config = chart_config
     with col2:
         df = _sort_dataframe(df, query)
         y2_dict = chart_config.pop("y2", None)
