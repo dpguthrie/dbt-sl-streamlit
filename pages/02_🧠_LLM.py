@@ -10,6 +10,13 @@ from langchain.prompts.few_shot import FewShotPromptTemplate
 from langchain.schema.output_parser import OutputParserException
 from pydantic.v1.error_wrappers import ValidationError
 
+# first party
+from client import get_query_results
+from helpers import create_graphql_code, create_tabs, to_arrow_table
+from llm.examples import EXAMPLES
+from llm.prompt import EXAMPLE_PROMPT
+from schema import Query
+
 st.set_page_config(
     page_title="dbt Semantic Layer - View Metrics",
     page_icon="🌌",
@@ -27,14 +34,6 @@ if "metric_dict" not in st.session_state:
         "job has been run successfully."
     )
     st.stop()
-
-
-# first party
-from client import get_query_results
-from helpers import create_graphql_code, create_tabs, to_arrow_table
-from llm.examples import EXAMPLES
-from llm.prompt import EXAMPLE_PROMPT
-from schema import Query
 
 
 def set_openai_api_key():
