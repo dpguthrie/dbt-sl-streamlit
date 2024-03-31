@@ -8,12 +8,7 @@ import requests
 import streamlit as st
 
 # first party
-from helpers import to_arrow_table
 from queries import GRAPHQL_QUERIES
-from schema import Query
-
-
-RESULT_STATUSES = ["pending", "running", "compiled", "failed", "successful"]
 
 
 @dataclass
@@ -23,10 +18,13 @@ class ConnAttr:
     auth_header: str  # "Bearer dbts_thisismyprivateservicetoken"
 
 
+RESULT_STATUSES = ["pending", "running", "compiled", "failed", "successful"]
+
+
 def submit_request(_conn_attr: ConnAttr, payload: Dict, source: str = None) -> Dict:
     # TODO: This should take into account multi-region and single-tenant
     url = f"{_conn_attr.host}/api/graphql"
-    if not "variables" in payload:
+    if "variables" not in payload:
         payload["variables"] = {}
     payload["variables"]["environmentId"] = _conn_attr.params["environmentid"]
     r = requests.post(
@@ -57,13 +55,18 @@ def get_connection_attributes(uri):
         )
 
 
-def get_query_results(payload: Dict, source: str = None):
-    progress_bar = st.progress(0, "Submitting Query ... ")
+@st.cache_data(show_spinner=False)
+def get_query_results(
+    payload: Dict, source: str = None, key: str = "createQuery", progress: bool = True
+):
+    if progress:
+        progress_bar = st.progress(0, "Submitting Query ... ")
     json = submit_request(st.session_state.conn, payload, source=source)
     try:
-        query_id = json["data"]["createQuery"]["queryId"]
+        query_id = json["data"][key]["queryId"]
     except TypeError:
-        progress_bar.progress(80, "Query Failed!")
+        if progress:
+            progress_bar.progress(80, "Query Failed!")
         st.error(json["errors"][0]["message"])
         st.stop()
     while True:
@@ -73,24 +76,28 @@ def get_query_results(payload: Dict, source: str = None):
         try:
             data = json["data"]["query"]
         except TypeError:
-            progress_bar.progress(80, "Query Failed!")
+            if progress:
+                progress_bar.progress(80, "Query Failed!")
             st.error(json["errors"][0]["message"])
             st.stop()
         else:
             status = data["status"].lower()
             if status == "successful":
-                progress_bar.progress(100, "Query Successful!")
+                if progress:
+                    progress_bar.progress(100, "Query Successful!")
                 break
             elif status == "failed":
-                progress_bar.progress(
-                    (RESULT_STATUSES.index(status) + 1) * 20, "red:Query Failed!"
-                )
+                if progress:
+                    progress_bar.progress(
+                        (RESULT_STATUSES.index(status) + 1) * 20, "red:Query Failed!"
+                    )
                 st.error(data["error"])
                 st.stop()
             else:
-                progress_bar.progress(
-                    (RESULT_STATUSES.index(status) + 1) * 20,
-                    f"Query is {status.capitalize()}...",
-                )
+                if progress:
+                    progress_bar.progress(
+                        (RESULT_STATUSES.index(status) + 1) * 20,
+                        f"Query is {status.capitalize()}...",
+                    )
 
     return data
