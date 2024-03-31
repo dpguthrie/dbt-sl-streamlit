@@ -7,7 +7,7 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.9.7 || >3.9.7,<4.0"
-streamlit = "^1.25.0"
+streamlit = "^1.32.0"
 plotly = "^5.15.0"
 requests = "^2.31.0"
 pyarrow = "^13.0.0"
