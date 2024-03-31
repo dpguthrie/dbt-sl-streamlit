@@ -1,6 +1,6 @@
 # stdlib
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 # third party
 import streamlit as st
@@ -286,15 +286,26 @@ class QueryLoader:
 
             return f"Dimension('{dimension}')"
 
+        def where_condition(condition: Union[List, str]):
+            if isinstance(condition, list):
+                return "(" + ", ".join(f"'{item}'" for item in condition) + ")"
+
+            if isinstance(condition, tuple):
+                return f"'{condition[0]}' AND '{condition[1]}'"
+
+            return f"'{condition}'"
+
         wheres = []
         for i in range(10):
             column = f"where_column_{i}"
             operator = f"where_operator_{i}"
             condition = f"where_condition_{i}"
             if column in self.state and self.state[column] is not None:
+                dimension_arg = where_dimension(self.state[column])
+                condition_arg = where_condition(self.state[condition])
                 wheres.append(
                     WhereInput(
-                        sql=f"{{{{ {where_dimension(self.state[column])} }}}} {self.state[operator]} {self.state[condition]}"
+                        sql=f"{{{{ {dimension_arg} }}}} {self.state[operator]} {condition_arg}"
                     )
                 )
             else:
