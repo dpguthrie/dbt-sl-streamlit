@@ -177,15 +177,15 @@ all_dimensions = [
 unique_dimensions = get_shared_elements(all_dimensions)
 
 # A cumulative metric needs to always be viewed over time so we select metric_time
-is_cumulative_metric = any(
+requires_metric_time = any(
     [
-        v["type"].lower() == "cumulative"
+        v["requiresMetricTime"]
         for k, v in st.session_state.metric_dict.items()
         if k in st.session_state.get("selected_metrics", [])
     ]
 )
 
-default_options = ["metric_time"] if is_cumulative_metric else None
+default_options = ["metric_time"] if requires_metric_time else None
 
 col2.multiselect(
     label="Select Dimension(s)",
@@ -202,7 +202,7 @@ dimension_types = set(
         for dim in st.session_state.get("selected_dimensions", [])
     ]
 )
-if "time" in dimension_types or is_cumulative_metric:
+if "time" in dimension_types or requires_metric_time:
     col1, col2 = st.columns(2)
     grains = [
         st.session_state.metric_dict[metric]["queryableGranularities"]

@@ -6,6 +6,7 @@ query GetMetrics($environmentId: BigInt!) {
     name
     queryableGranularities
     type
+    requiresMetricTime
     dimensions {
       description
       name
