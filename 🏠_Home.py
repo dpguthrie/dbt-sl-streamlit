@@ -9,6 +9,14 @@ from client import get_connection_attributes, submit_request
 from queries import GRAPHQL_QUERIES
 
 
+def retrieve_saved_queries():
+    payload = {"query": GRAPHQL_QUERIES["saved_queries"]}
+    json_data = submit_request(st.session_state.conn, payload)
+    saved_queries = json_data.get("data", {}).get("savedQueries", [])
+    if saved_queries:
+        st.session_state.saved_queries = saved_queries
+
+
 def prepare_app():
 
     with st.spinner("Gathering Metrics..."):
@@ -44,6 +52,7 @@ def prepare_app():
                     "and a production job has been run successfully."
                 )
             else:
+                retrieve_saved_queries()
                 st.success("Success!  Explore the rest of the app!")
 
 
