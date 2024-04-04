@@ -341,20 +341,23 @@ def retrieve_saved_query(name: str) -> Dict:
 with saved_query_tab:
     col1, col2 = st.columns(2)
 
-    col1.selectbox(
+    saved_queries = [sq for sq in st.session_state.get("saved_queries", [])]
+    sorted_saved_queries = sorted(sq["name"] for sq in saved_queries)
+
+    st.selectbox(
         label="Select Saved Query",
-        options=[sq["name"] for sq in st.session_state.get("saved_queries", [])],
+        options=sorted_saved_queries,
         key="selected_saved_query",
     )
     saved_query = retrieve_saved_query(st.session_state.selected_saved_query)
-    col1.caption(saved_query.get("description", "No description"))
+    st.caption(saved_query.get("description", "No description"))
     query_params = saved_query.get("queryParams", None)
     if query_params:
-        sql = query_params.get("where", {}).get("whereSqlTemplate", None)
-        if sql:
-            where = [{"sql": sql}]
-        else:
+        sql = query_params.get("where", {})
+        if sql is None:
             where = []
+        else:
+            where = [{"sql": sql.get("whereSqlTemplate", None)}]
         query = Query(
             metrics=query_params["metrics"],
             groupBy=query_params.get("groupBy", []),
