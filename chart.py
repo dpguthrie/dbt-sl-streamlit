@@ -71,7 +71,7 @@ def _add_secondary_yaxis(df, fig, dct):
     return new_fig
 
 
-def create_chart(df, query: Query, suffix: str = "qm"):
+def create_chart(df, query: Query, suffix: str):
     col1, col2 = st.columns([0.2, 0.8])
 
     # Create default chart types
