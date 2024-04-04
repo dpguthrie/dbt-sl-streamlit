@@ -71,7 +71,7 @@ def _add_secondary_yaxis(df, fig, dct):
     return new_fig
 
 
-def create_chart(df, query: Query):
+def create_chart(df, query: Query, suffix: str):
     col1, col2 = st.columns([0.2, 0.8])
 
     # Create default chart types
@@ -85,7 +85,7 @@ def create_chart(df, query: Query):
     selected_chart_type = col1.selectbox(
         label="Select Chart Type",
         options=chart_types,
-        key="selected_chart_type",
+        key=f"selected_chart_type_{suffix}",
     )
 
     chart_config = {}
@@ -109,7 +109,7 @@ def create_chart(df, query: Query):
                 label="X-Axis",
                 options=options,
                 placeholder="Select Dimension",
-                key="chart_config_x",
+                key=f"chart_config_x_{suffix}",
             )
             chart_config["x"] = x
 
@@ -126,7 +126,7 @@ def create_chart(df, query: Query):
                     m for m in query.metric_names if m not in chart_config.values()
                 ],
                 placeholder="Select Metric",
-                key="chart_config_y",
+                key=f"chart_config_y_{suffix}",
                 **y_kwargs,
             )
             chart_config["y"] = y
@@ -143,14 +143,14 @@ def create_chart(df, query: Query):
                 label="Secondary Axis",
                 options=[None]
                 + [m for m in query.metric_names if m not in chart_config.values()],
-                key="chart_config_y2",
+                key=f"chart_config_y2_{suffix}",
             )
             chart_config["y2"]["metric"] = y2
             y2_chart = expander.selectbox(
                 label="Secondary Axis Chart Type",
                 options=chart_types,
                 index=chart_types.index(selected_chart_type),
-                key="chart_config_y2_chart_type",
+                key=f"chart_config_y2_chart_type_{suffix}",
             )
             chart_config["y2"]["chart_type"] = y2_chart
 
@@ -159,7 +159,7 @@ def create_chart(df, query: Query):
                 label="Values",
                 options=query.metric_names,
                 placeholder="Select Value",
-                key="chart_config_values",
+                key=f"chart_config_values_{suffix}",
             )
             chart_config["values"] = values
 
@@ -167,7 +167,7 @@ def create_chart(df, query: Query):
             names = col1.selectbox(
                 label="Select Dimension",
                 options=query.dimension_names,
-                key="chart_config_names",
+                key=f"chart_config_names_{suffix}",
             )
             chart_config["names"] = names
 
@@ -176,7 +176,7 @@ def create_chart(df, query: Query):
                 label="Color",
                 options=[None] + query.all_names,
                 placeholder="Select Color",
-                key="chart_config_color",
+                key=f"chart_config_color_{suffix}",
             )
             chart_config["color"] = color
 
@@ -186,7 +186,7 @@ def create_chart(df, query: Query):
                 options=[None]
                 + _available_options(selected_metrics, query.metric_names),
                 placeholder="Select Size",
-                key="chart_config_size",
+                key=f"chart_config_size_{suffix}",
             )
             chart_config["size"] = size
 
@@ -199,7 +199,7 @@ def create_chart(df, query: Query):
                 options=[None]
                 + _available_options(selected_dimensions, query.dimension_names),
                 placeholder="Select Facet Column",
-                key="chart_config_facet_col",
+                key=f"chart_config_facet_col_{suffix}",
             )
             chart_config["facet_col"] = facet_col
 
@@ -212,7 +212,7 @@ def create_chart(df, query: Query):
                 options=[None]
                 + _available_options(selected_dimensions, query.dimension_names),
                 placeholder="Select Facet Row",
-                key="chart_config_facet_row",
+                key=f"chart_config_facet_row_{suffix}",
             )
             chart_config["facet_row"] = facet_row
 
@@ -221,7 +221,7 @@ def create_chart(df, query: Query):
                 label="Histogram Function",
                 options=["sum", "count", "avg"],
                 placeholder="Select Function",
-                key="chart_config_histfunc",
+                key=f"chart_config_histfunc_{suffix}",
             )
             chart_config["histfunc"] = histfunc
 
@@ -229,7 +229,7 @@ def create_chart(df, query: Query):
             nbins = col1.number_input(
                 label="Number of Bins",
                 min_value=0,
-                key="chart_config_nbins",
+                key=f"chart_config_nbins_{suffix}",
                 value=0,
                 help="If set to 0, the number of bins will be determined automatically",
             )
@@ -247,7 +247,7 @@ def create_chart(df, query: Query):
             orientation = col1.selectbox(
                 label="Select Orientation",
                 options=["Vertical", "Horizontal"],
-                key="chart_config_orientation",
+                key=f"chart_config_orientation_{suffix}",
             )
             chart_config["orientation"] = orientation[:1].lower()
             if chart_config["orientation"] == "h":
@@ -260,7 +260,7 @@ def create_chart(df, query: Query):
             barmode = col1.selectbox(
                 label="Select Bar Mode",
                 options=["group", "stack"],
-                key="chart_config_barmode",
+                key=f"chart_config_barmode_{suffix}",
             )
             chart_config["barmode"] = barmode
 

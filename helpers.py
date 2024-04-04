@@ -78,13 +78,9 @@ def create_tabs(state: st.session_state, suffix: str) -> None:
         query = getattr(state, f"query_{suffix}")
         tab1, tab2, tab3 = st.tabs(["Chart", "Data", "SQL"])
         with tab1:
-            create_chart(df, query)
+            create_chart(df, query, suffix)
         with tab2:
             st.dataframe(df, use_container_width=True)
-            output = convert_df(df)
-            st.download_button(
-                "Download Data", output, "data.csv", "text/csv", key="download-csv"
-            )
         with tab3:
             st.code(sql, language="sql")
 
