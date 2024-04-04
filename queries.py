@@ -102,6 +102,27 @@ query GetMetricsForDimensions($environmentId: BigInt!, $dimensions:[GroupByInput
   }
 }
     """,
+    "saved_queries": """
+query GetSavedQueries($environmentId: BigInt!) {
+  savedQueries(environmentId: $environmentId) {
+    description
+    label
+    name
+    queryParams {
+      groupBy {
+        grain
+        name
+      }
+      metrics {
+        name
+      }
+      where {
+        whereSqlTemplate
+      }
+    }
+  }
+}
+""",
 }
 
 JDBC_QUERIES = {
