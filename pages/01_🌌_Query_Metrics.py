@@ -1,6 +1,6 @@
 # stdlib
 from datetime import datetime, timedelta
-from typing import Dict
+from typing import Dict, List
 
 # third party
 import streamlit as st
@@ -359,8 +359,8 @@ with saved_query_tab:
         else:
             where = [{"sql": sql.get("whereSqlTemplate", None)}]
         query = Query(
-            metrics=query_params["metrics"],
-            groupBy=query_params.get("groupBy", []),
+            metrics=query_params.get("metrics") or [],
+            groupBy=query_params.get("groupBy") or [],
             where=where,
         )
 
