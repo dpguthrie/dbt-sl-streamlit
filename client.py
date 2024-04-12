@@ -57,11 +57,16 @@ def get_connection_attributes(uri):
 
 @st.cache_data(show_spinner=False)
 def get_query_results(
-    payload: Dict, source: str = None, key: str = "createQuery", progress: bool = True
+    payload: Dict,
+    source: str = None,
+    key: str = "createQuery",
+    progress: bool = True,
+    conn: ConnAttr = None,
 ):
+    conn = conn or st.session_state.conn
     if progress:
         progress_bar = st.progress(0, "Submitting Query ... ")
-    json = submit_request(st.session_state.conn, payload, source=source)
+    json = submit_request(conn, payload, source=source)
     try:
         query_id = json["data"][key]["queryId"]
     except TypeError:
@@ -72,7 +77,7 @@ def get_query_results(
     while True:
         graphql_query = GRAPHQL_QUERIES["get_results"]
         results_payload = {"variables": {"queryId": query_id}, "query": graphql_query}
-        json = submit_request(st.session_state.conn, results_payload)
+        json = submit_request(conn, results_payload)
         try:
             data = json["data"]["query"]
         except TypeError:
