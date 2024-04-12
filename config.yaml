@@ -1,0 +1,48 @@
+credentials:
+  usernames:
+    lclark:
+      email: lclark@gmail.com
+      failed_login_attempts: 0 # Will be managed automatically
+      logged_in: False # Will be managed automatically
+      name: Linda Clark
+      password: 24z1eWgbgXV9 # Will be hashed automatically
+      user_id: 1699
+    jmiranda:
+      email: jmiranda@gmail.com
+      failed_login_attempts: 0 # Will be managed automatically
+      logged_in: False # Will be managed automatically
+      name: John Miranda
+      password: 509gS72X8U65 # Will be hashed automatically
+      user_id: 555
+    asmith:
+      email: asmith@gmail.com
+      failed_login_attempts: 0 # Will be managed automatically
+      logged_in: False # Will be managed automatically
+      name: Andrew Smith
+      password: CaAD3tZe6135 # Will be hashed automatically
+      user_id: 1261
+    jmorse:
+      email: jmorse@gmail.com
+      failed_login_attempts: 0 # Will be managed automatically
+      logged_in: False # Will be managed automatically
+      name: Jerry Morse
+      password: Ndf6oR5FmHX1 # Will be hashed automatically
+      user_id: 1617
+    klopez:
+      email: klopez@gmail.com
+      failed_login_attempts: 0 # Will be managed automatically
+      logged_in: False # Will be managed automatically
+      name: Karen Lopez
+      password: T6ZS4t1HTTTV # Will be hashed automatically
+      user_id: 1267
+cookie:
+  expiry_days: 30
+  key: vA7ivTWVOVhlsfhyYrYXFZ6AlH521tgc # Must be string
+  name: dbt_sl_embedded
+pre-authorized:
+  emails:
+  - lclark@gmail.com
+  - jmiranda@gmail.com
+  - asmith@gmail.com
+  - jmorse@gmail.com
+  - klopez@gmail.com
