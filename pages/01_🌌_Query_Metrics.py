@@ -1,6 +1,6 @@
 # stdlib
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import Dict
 
 # third party
 import streamlit as st
