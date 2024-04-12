@@ -200,7 +200,6 @@ def build_app(user_id: int):
         st.subheader("Financial Metrics")
         create_metrics_row(initial_data["df"])
         create_time_series_row(initial_data["df"])
-    with st.container(border=True):
         st.subheader("Touchpoints")
         st.number_input(label="Top N", min_value=1, max_value=10, value=5, key="top_n")
         create_top_n_row(expense_data["df"], st.session_state.top_n)
@@ -614,7 +613,6 @@ st.markdown(
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
   border-radius: 8px;
   padding: 16px 24px;
-  background-color: white;
   transition: box-shadow 0.3s ease-in-out;
   display: flex;
   flex-direction: column;
