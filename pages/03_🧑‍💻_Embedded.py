@@ -310,7 +310,7 @@ def get_query_results(payload: Dict) -> Dict:
     while True:
 
         results_payload = {"variables": {"queryId": query_id}, "query": graphql_query}
-        json = submit_request(results_payload)
+        json_data = submit_request(results_payload)
         try:
             json_data = json["data"]["query"]
         except TypeError:
@@ -461,7 +461,7 @@ def get_query_results(payload: Dict) -> Dict:
     while True:
 
         results_payload = {"variables": {"queryId": query_id}, "query": graphql_query}
-        json = submit_request(results_payload)
+        json_data = submit_request(results_payload)
         try:
             json_data = json["data"]["query"]
         except TypeError:
