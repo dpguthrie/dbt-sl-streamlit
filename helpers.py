@@ -73,7 +73,7 @@ def convert_df(df, to="to_csv", index=False):
 
 def create_explorer_link(query):
     if "account_id" in st.session_state:
-        _, col2 = st.columns([4, 1])
+        _, col2 = st.columns([4, 1.5])
         url = url_for_explorer(query.metric_names)
         col2.page_link(url, label="View from dbt Explorer", icon="🕵️")
 
@@ -88,13 +88,11 @@ def create_tabs(state: st.session_state, suffix: str) -> None:
         tab1, tab2, tab3 = st.tabs(["Chart", "Data", "SQL"])
         with tab1:
             create_chart(df, query, suffix)
-            create_explorer_link(query)
         with tab2:
             st.dataframe(df, use_container_width=True)
-            create_explorer_link(query)
         with tab3:
             st.code(sql, language="sql")
-            create_explorer_link(query)
+        create_explorer_link(query)
 
 
 def encode_dictionary(d):
