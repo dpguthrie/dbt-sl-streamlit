@@ -21,9 +21,15 @@ class ConnAttr:
 RESULT_STATUSES = ["pending", "running", "compiled", "failed", "successful"]
 
 
-def submit_request(_conn_attr: ConnAttr, payload: Dict, source: str = None) -> Dict:
+def submit_request(
+    _conn_attr: ConnAttr,
+    payload: Dict,
+    source: str = None,
+    host_override: str = None,
+    path: str = "/api/graphql",
+) -> Dict:
     # TODO: This should take into account multi-region and single-tenant
-    url = f"{_conn_attr.host}/api/graphql"
+    url = f"{host_override or _conn_attr.host}{path}"
     if "variables" not in payload:
         payload["variables"] = {}
     payload["variables"]["environmentId"] = _conn_attr.params["environmentid"]

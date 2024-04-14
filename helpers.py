@@ -1,6 +1,7 @@
 # stdlib
 import base64
 import json
+import urllib.parse
 from typing import List
 
 # third party
@@ -9,6 +10,7 @@ import streamlit as st
 
 # first party
 from chart import create_chart
+from client import ConnAttr
 from schema import Query
 
 
@@ -69,6 +71,13 @@ def convert_df(df, to="to_csv", index=False):
     return getattr(df, to)(index=index).encode("utf8")
 
 
+def create_explorer_link(query):
+    if "account_id" in st.session_state:
+        _, col2 = st.columns([4, 1])
+        url = url_for_explorer(query.metric_names)
+        col2.page_link(url, label="View from dbt Explorer", icon="🕵️")
+
+
 def create_tabs(state: st.session_state, suffix: str) -> None:
     keys = ["query", "df", "compiled_sql"]
     keys_with_suffix = [f"{key}_{suffix}" for key in keys]
@@ -79,10 +88,13 @@ def create_tabs(state: st.session_state, suffix: str) -> None:
         tab1, tab2, tab3 = st.tabs(["Chart", "Data", "SQL"])
         with tab1:
             create_chart(df, query, suffix)
+            create_explorer_link(query)
         with tab2:
             st.dataframe(df, use_container_width=True)
+            create_explorer_link(query)
         with tab3:
             st.code(sql, language="sql")
+            create_explorer_link(query)
 
 
 def encode_dictionary(d):
@@ -129,3 +141,32 @@ def set_context_query_param(params: List[str]):
 def retrieve_context_query_param():
     context = st.query_params.get("context", None)
     return decode_string(context)
+
+
+def get_access_url(conn: ConnAttr = None):
+    if conn is None:
+        conn = st.session_state.conn
+
+    if conn.host.endswith(".semantic-layer"):
+        host = conn.host.replace(".semantic-layer", "")
+    elif conn.host.startswith("https://semantic-layer."):
+        host = conn.host.replace("https://semantic-layer.", "https://")
+    else:
+        host = conn.host.replace(".semantic-layer.", ".")
+
+    return host
+
+
+def url_for_explorer(metrics: List[str], *, conn: ConnAttr = None):
+    if "account_id" not in st.session_state:
+        return
+
+    if conn is None:
+        conn = st.session_state.conn
+
+    metric_string = " ".join(f"+metric:{metric}" for metric in metrics)
+    encoded_param = urllib.parse.quote_plus(metric_string)
+    environment_id = conn.params["environmentid"]
+    host = get_access_url(conn)
+    full_url = f"{host}/explore/{st.session_state.account_id}/environments/{environment_id}/lineage/?select={encoded_param}"
+    return full_url

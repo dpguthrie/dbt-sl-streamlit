@@ -123,6 +123,22 @@ query GetSavedQueries($environmentId: BigInt!) {
   }
 }
 """,
+    "account": """
+query Environment($environmentId: BigInt!, $first: Int!) {
+  environment(id: $environmentId) {
+    applied {
+      models(first: $first) {
+        edges {
+          node {
+            accountId
+            projectId
+          }
+        }
+      }
+    }
+  }
+}
+  """,
 }
 
 JDBC_QUERIES = {

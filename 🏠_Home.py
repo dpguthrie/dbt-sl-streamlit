@@ -1,4 +1,5 @@
 # stdlib
+import urllib.parse
 
 # third party
 import streamlit as st
@@ -6,6 +7,7 @@ import streamlit.components.v1 as components
 
 # first party
 from client import get_connection_attributes, submit_request
+from helpers import get_access_url
 from queries import GRAPHQL_QUERIES
 
 
@@ -15,6 +17,30 @@ def retrieve_saved_queries():
     saved_queries = json_data.get("data", {}).get("savedQueries", [])
     if saved_queries:
         st.session_state.saved_queries = saved_queries
+
+
+def retrieve_account_id():
+    payload = {"query": GRAPHQL_QUERIES["account"], "variables": {"first": 1}}
+    access_url = get_access_url()
+    netloc = urllib.parse.urlparse(access_url).netloc
+    host = f"https://metadata.{netloc}"
+    json_data = submit_request(
+        st.session_state.conn, payload, host_override=host, path="/beta/graphql"
+    )
+    try:
+        edges = (
+            json_data.get("data", {})
+            .get("environment", {})
+            .get("applied", {})
+            .get("models", {})
+            .get("edges", [])
+        )
+    except AttributeError:
+        pass
+    else:
+        if edges:
+            st.session_state.account_id = edges[0]["node"]["accountId"]
+            st.session_state.project_id = edges[0]["node"]["projectId"]
 
 
 def prepare_app():
@@ -53,6 +79,7 @@ def prepare_app():
                 )
             else:
                 retrieve_saved_queries()
+                retrieve_account_id()
                 st.success("Success!  Explore the rest of the app!")
 
 
