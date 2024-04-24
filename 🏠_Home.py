@@ -24,23 +24,29 @@ def retrieve_account_id():
     access_url = get_access_url()
     netloc = urllib.parse.urlparse(access_url).netloc
     host = f"https://metadata.{netloc}"
-    json_data = submit_request(
-        st.session_state.conn, payload, host_override=host, path="/beta/graphql"
-    )
+
+    # TODO: Temporary hack to get around multi-cell metadata URLs not conforming
     try:
-        edges = (
-            json_data.get("data", {})
-            .get("environment", {})
-            .get("applied", {})
-            .get("models", {})
-            .get("edges", [])
+        json_data = submit_request(
+            st.session_state.conn, payload, host_override=host, path="/beta/graphql"
         )
-    except AttributeError:
-        pass
+    except Exception as e:
+        print(e)
     else:
-        if edges:
-            st.session_state.account_id = edges[0]["node"]["accountId"]
-            st.session_state.project_id = edges[0]["node"]["projectId"]
+        try:
+            edges = (
+                json_data.get("data", {})
+                .get("environment", {})
+                .get("applied", {})
+                .get("models", {})
+                .get("edges", [])
+            )
+        except AttributeError:
+            pass
+        else:
+            if edges:
+                st.session_state.account_id = edges[0]["node"]["accountId"]
+                st.session_state.project_id = edges[0]["node"]["projectId"]
 
 
 def prepare_app():
