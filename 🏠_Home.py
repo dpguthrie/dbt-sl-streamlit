@@ -7,7 +7,7 @@ import streamlit.components.v1 as components
 
 # first party
 from client import get_connection_attributes, submit_request
-from helpers import get_access_url
+from helpers import url_for_disco
 from queries import GRAPHQL_QUERIES
 
 
@@ -21,9 +21,7 @@ def retrieve_saved_queries():
 
 def retrieve_account_id():
     payload = {"query": GRAPHQL_QUERIES["account"], "variables": {"first": 1}}
-    access_url = get_access_url()
-    netloc = urllib.parse.urlparse(access_url).netloc
-    host = f"https://metadata.{netloc}"
+    host = url_for_disco()
 
     # TODO: Temporary hack to get around multi-cell metadata URLs not conforming
     try:
@@ -31,7 +29,7 @@ def retrieve_account_id():
             st.session_state.conn, payload, host_override=host, path="/beta/graphql"
         )
     except Exception as e:
-        print(e)
+        print(f"Error running disco API query for {host}; {e}")
     else:
         try:
             edges = (
@@ -42,6 +40,7 @@ def retrieve_account_id():
                 .get("edges", [])
             )
         except AttributeError:
+            # data is None
             pass
         else:
             if edges:

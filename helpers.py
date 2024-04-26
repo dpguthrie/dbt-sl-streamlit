@@ -155,6 +155,19 @@ def get_access_url(conn: ConnAttr = None):
     return host
 
 
+def url_for_disco(conn: ConnAttr = None):
+    access_url = get_access_url(conn)
+    netloc = urllib.parse.urlparse(access_url).netloc
+    netloc_split = netloc.split(".")
+    if "us1" in netloc_split or "us2" in netloc_split:
+        account_prefix = netloc_split[0]
+        the_rest = ".".join(netloc_split[1:])
+        host = f"https://{account_prefix}.metadata.{the_rest}"
+    else:
+        host = f"https://metadata.{netloc}"
+    return host
+
+
 def url_for_explorer(metrics: List[str], *, conn: ConnAttr = None):
     if "account_id" not in st.session_state:
         return
