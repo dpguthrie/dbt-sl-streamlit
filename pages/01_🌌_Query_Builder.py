@@ -350,7 +350,7 @@ with saved_query_tab:
         key="selected_saved_query",
     )
     saved_query = retrieve_saved_query(st.session_state.selected_saved_query)
-    st.caption(saved_query.get("description", "No description"))
+    st.caption(saved_query.get("description", ""))
     query_params = saved_query.get("queryParams", None)
     if query_params:
         sql = query_params.get("where", {})
