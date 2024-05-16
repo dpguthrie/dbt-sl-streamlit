@@ -3,7 +3,8 @@
 # third party
 import streamlit as st
 from langchain.chains import LLMChain
-from langchain.llms import OpenAI
+#from langchain.llms import OpenAI
+from langchain_openai import ChatOpenAI
 from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import PromptTemplate
 from langchain.prompts.few_shot import FewShotPromptTemplate
@@ -102,7 +103,7 @@ if question and st.session_state.get("refresh", False):
         st.warning("Please enter your OpenAI API Key")
         st.stop()
     try:
-        llm = OpenAI(
+        llm = ChatOpenAI(
             openai_api_key=st.session_state._openai_api_key,
             model_name="gpt-3.5-turbo-1106",
             temperature=0,
