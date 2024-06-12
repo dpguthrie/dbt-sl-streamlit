@@ -1,15 +1,13 @@
 # stdlib
+import urllib.parse
 
 # third party
 import streamlit as st
 import streamlit.components.v1 as components
-from langchain_chroma import Chroma
-from langchain_openai import OpenAIEmbeddings
 
 # first party
 from client import get_connection_attributes, submit_request
 from helpers import url_for_disco
-from llm.retriever import get_metadata
 from queries import GRAPHQL_QUERIES
 
 
@@ -19,20 +17,6 @@ def retrieve_saved_queries():
     saved_queries = json_data.get("data", {}).get("savedQueries", [])
     if saved_queries:
         st.session_state.saved_queries = saved_queries
-
-
-def create_embeddings():
-    try:
-        docs = get_metadata(st.session_state.conn)
-    except ValueError:
-        st.session_state.db = None
-    else:
-        environment_id = st.session_state.conn.params["environmentid"]
-        st.session_state.db = Chroma.from_documents(
-            documents=docs,
-            collection_name=f"metrics_{environment_id}",
-            embedding=OpenAIEmbeddings(api_key=st.secrets["OPENAI_API_KEY"]),
-        )
 
 
 def retrieve_account_id():
@@ -101,7 +85,6 @@ def prepare_app():
             else:
                 retrieve_saved_queries()
                 retrieve_account_id()
-                create_embeddings()
                 st.success("Success!  Explore the rest of the app!")
 
 
