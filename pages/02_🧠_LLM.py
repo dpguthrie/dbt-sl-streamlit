@@ -57,7 +57,7 @@ api_key = st.text_input(
     label="API Key",
     type="password",
     value=st.session_state.get("_openai_api_key", ""),
-    placeholder="Enter your OpenAI API Key",
+    placeholder="Enter your API Key",
     key="openai_api_key",
     on_change=set_openai_api_key,
 )
