@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 
 # third party
 import streamlit as st
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 # first party
 from queries import GRAPHQL_QUERIES
@@ -39,21 +39,13 @@ class TimeGranularity(str, Enum):
 
 
 class MetricInput(BaseModel):
-    name: str = Field(
-        description=(
-            "Metric name defined by the user.  A metric can generally be thought of "
-            "as a descriptive statistic, indicator, or figure of merit used to "
-            "describe or measure something quantitatively."
-        )
-    )
+    name: str = Field(description="The metric name as defined in the semantic layer.")
 
 
 class GroupByInput(BaseModel):
     name: str = Field(
         description=(
-            "Dimension name defined by the user.  They often contain qualitative "
-            "values (such as names, dates, or geographical data). You can use "
-            "dimensions to categorize, segment, and reveal the details in your data. "
+            "The dimension name as defined in the semantic layer. "
             "A common dimension used here will be metric_time.  This will ALWAYS have "
             "an associated grain."
         )
@@ -61,7 +53,7 @@ class GroupByInput(BaseModel):
     grain: Optional[TimeGranularity] = Field(
         default=None,
         description=(
-            "The grain is the time interval represented by a single point in the data"
+            "Grain should only be used for date/time fields, including metric_time."
         ),
     )
 
@@ -69,25 +61,14 @@ class GroupByInput(BaseModel):
         use_enum_values = True
 
 
-class OrderByInput(BaseModel):
-    """
-    Important note:  Only one of metric or groupBy is allowed to be specified
-    """
-
-    metric: Optional[MetricInput] = None
-    groupBy: Optional[GroupByInput] = None
+class MetricOrderByInput(BaseModel):
+    metric: MetricInput
     descending: Optional[bool] = None
 
-    @model_validator(mode="before")
-    def check_metric_or_groupBy(cls, values):
-        if (values.get("metric") is None) and (values.get("groupBy") is None):
-            raise ValueError("either metric or groupBy is required")
-        if (values.get("metric") is not None) and (values.get("groupBy") is not None):
-            raise ValueError("only one of metric or groupBy is allowed")
-        return values
 
-    class Config:
-        exclude_none = True
+class GroupByOrderByInput(BaseModel):
+    groupBy: GroupByInput
+    descending: Optional[bool] = None
 
 
 class WhereInput(BaseModel):
@@ -98,8 +79,13 @@ class Query(BaseModel):
     metrics: List[MetricInput]
     groupBy: Optional[List[GroupByInput]] = None
     where: Optional[List[WhereInput]] = None
-    orderBy: Optional[List[OrderByInput]] = None
+    metricOrderBy: Optional[List[MetricOrderByInput]] = None
+    groupByOrderBy: Optional[List[GroupByOrderByInput]] = None
     limit: Optional[int] = None
+
+    @property
+    def orderBy(self):
+        return (self.metricOrderBy or []) + (self.groupByOrderBy or [])
 
     @property
     def all_names(self):
@@ -219,7 +205,7 @@ from {{{{
 
         return {
             "metrics": inputs_to_dict(self.metrics) if self.metrics else [],
-            "group_by": inputs_to_dict(self.groupBy) if self.groupBy else [],
+            "group_by": (inputs_to_dict(self.groupBy) if self.groupBy else []),
             "where": [w.sql for w in self.where] if self.where else [],
             "order_by": [
                 {
@@ -253,11 +239,13 @@ class QueryLoader:
         self.state = state
 
     def create(self):
+        order_by_dict = self._orderBy or {}
         return Query(
             metrics=self._metrics,
             groupBy=self._groupBy or None,
             where=self._where or None,
-            orderBy=self._orderBy or None,
+            metricOrderBy=order_by_dict.get("metric", None),
+            groupByOrderBy=order_by_dict.get("groupBy", None),
             limit=self._limit or None,
         )
 
@@ -324,7 +312,9 @@ class QueryLoader:
 
             return {"groupBy": dct}
 
-        orderBys = []
+        classes: Dict = {"metric": MetricOrderByInput, "groupBy": GroupByOrderByInput}
+        order_by_type: str = None
+        orderBys: Dict = {"metric": [], "groupBy": []}
         for i in range(10):
             column = f"order_column_{i}"
             direction = f"order_direction_{i}"
@@ -332,11 +322,13 @@ class QueryLoader:
                 name = self.state[column]
                 if name in self.state.selected_metrics:
                     dct = metric(name)
+                    order_by_type = "metric"
                 else:
                     dct = groupBy(name)
+                    order_by_type = "group_by"
                 if self.state[direction].lower() == "desc":
                     dct["descending"] = True
-                orderBys.append(OrderByInput(**dct))
+                orderBys[order_by_type].append(classes[order_by_type](**dct))
             else:
                 break
         return orderBys
