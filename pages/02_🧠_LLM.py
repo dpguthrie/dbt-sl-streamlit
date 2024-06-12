@@ -49,7 +49,7 @@ def set_question():
 st.write("# LLM Query Builder")
 
 st.markdown(
-    "Input your OpenAI API Key below and ask questions abour your data.\n\n**This is highly experimental** "
+    "Input your API Key below and ask questions abour your data.\n\n**This is highly experimental** "
     "and not meant to handle every edge case.  Please feel free to report any issues (or open up a PR to fix)."
 )
 
