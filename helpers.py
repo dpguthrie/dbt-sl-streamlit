@@ -92,7 +92,7 @@ def create_tabs(state: st.session_state, suffix: str) -> None:
             st.dataframe(df, use_container_width=True)
         with tab3:
             st.code(sql, language="sql")
-        create_explorer_link(query)
+        # create_explorer_link(query)
 
 
 def encode_dictionary(d):
