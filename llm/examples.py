@@ -33,7 +33,7 @@ EXAMPLES = [
                 ],
                 "groupBy": [{"name": "metric_time", "grain": "QUARTER"}],
                 "where": [{"sql": "{{ Dimension('customer__city') }} ilike 'Denver'"}],
-                "orderBy": [
+                "metricOrderBy": [
                     {"metric": {"name": "avg_sales_per_cust"}, "descending": True}
                 ],
             }
@@ -104,7 +104,7 @@ EXAMPLES = [
                         "sql": "{{ TimeDimension('metric_time', 'DAY') }} >= date_trunc('year', current_date)"
                     }
                 ],
-                "orderBy": [
+                "groupByOrderBy": [
                     {"groupBy": {"name": "metric_time", "grain": "YEAR"}},
                     {"groupBy": {"name": "region"}},
                 ],
@@ -151,7 +151,7 @@ EXAMPLES = [
                         "sql": "{{ TimeDimension('metric_time', 'DAY') }} between '2023-09-01' and '2023-09-30'"
                     }
                 ],
-                "orderBy": [
+                "metricOrderBy": [
                     {"metric": {"name": "total_revenue"}, "descending": True},
                 ],
                 "limit": 10,
@@ -178,7 +178,7 @@ EXAMPLES = [
                         "sql": "{{ TimeDimension('metric_time', 'DAY') }} between '2023-01-01' and '2023-12-31'"
                     }
                 ],
-                "orderBy": [
+                "metricOrderBy": [
                     {"metric": {"name": "total_profit"}, "descending": True},
                 ],
                 "limit": 5,
@@ -259,7 +259,7 @@ EXAMPLES = [
                         "sql": "date_trunc('month', {{ TimeDimension('metric_time', 'DAY') }}) = date_trunc('month', dateadd('month', -1, current_date))"
                     },
                 ],
-                "orderBy": [
+                "metricOrderBy": [
                     {"metric": {"name": "arr"}},
                 ],
                 "limit": 5,
@@ -310,7 +310,7 @@ EXAMPLES = [
                         "sql": "{{ Dimension('customer_order__customer__customer_market_segment') }} ilike 'automobile'"
                     },
                 ],
-                "orderBy": [
+                "metricOrderBy": [
                     {"metric": {"name": "total_profit"}, "descending": True},
                 ],
                 "limit": 1,
@@ -333,7 +333,7 @@ EXAMPLES = [
                         "sql": "{{ Dimension('customer__customer_market_segment') }} ilike 'automobile'"
                     },
                 ],
-                "orderBy": [
+                "metricOrderBy": [
                     {"metric": {"name": "total_profit"}, "descending": True},
                 ],
                 "limit": 1,
