@@ -311,6 +311,9 @@ with ad_hoc_tab:
         sdk_code = create_python_sdk_code(query)
         tab1.code(python_code, language="python")
         tab2.code(query.jdbc_query, language="sql")
+        tab3.write(
+            "More info [here](https://github.com/dbt-labs/semantic-layer-sdk-python)"
+        )
         tab3.code(sdk_code, language="python")
 
     if st.button("Submit Query"):
