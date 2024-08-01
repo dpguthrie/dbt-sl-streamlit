@@ -109,22 +109,38 @@ prompt_example = PromptTemplate(
     input_variables=["metrics", "dimensions", "question", "result"],
 )
 
+prefix = """
+You are an AI assistant that creates SQL queries based on user input and dbt Semantic 
+Layer context. Generate a JSON object, and only a JSON object, matching this Pydantic
+model:
+
+class Query(BaseModel):
+    metrics: List[MetricInput]
+    groupBy: Optional[List[GroupByInput]] = None
+    where: Optional[List[WhereInput]] = None
+    metricOrderBy: Optional[List[MetricOrderByInput]] = None
+    groupByOrderBy: Optional[List[GroupByOrderByInput]] = None
+    limit: Optional[int] = None
+
+Example JSON output from the question: "What is total revenue in 2023?":
+{ 
+    "metrics": [ { "name": "total_revenue" } ],
+    "groupBy": null,
+    "where": [ { "sql": "year({{ TimeDimension('metric_time', 'DAY') }}) = 2023" } ],
+    "orderBy": null,
+    "limit": null 
+}
+
+Ensure accuracy and alignment with user intent.  Only return a JSON object.
+Examples follow:
+"""
+
 prompt = FewShotPromptTemplate(
     examples=EXAMPLES,
     example_prompt=prompt_example,
-    prefix="""Given a question involving a user's data, transform it into a structured query object.
-                It's important to remember that in the 'orderBy' field, only one of 'metric' or 'groupBy' should be set, not both.
-                Additionally, when adding items to the `where` field and the identifier contains multiple dunder (__) characters,
-                you'll need to change how you specify the dimension.  An example of this is `customer_order__customer__customer_market_segment`.
-                This needs to be represented as Dimension('customer__customer_market_segment').
-                Another example is `order__customer__nation__nation_name`.  This needs to be represented as
-                Dimension('nation__nation_name').  Use only the last primary_entity__dimension_name in the identifier.
-                Here are some examples showing how to correctly and incorrectly structure a query based on a user's question.
-                {format_instructions}
-            """,
+    prefix=prefix,
     suffix="Metrics: {metrics}\nDimensions: {dimensions}\nQuestion: {question}\nResult:\n",
     input_variables=["metrics", "dimensions", "question"],
-    partial_variables={"format_instructions": parser.get_format_instructions()},
 )
 
 if question and st.session_state.get("refresh", False):
