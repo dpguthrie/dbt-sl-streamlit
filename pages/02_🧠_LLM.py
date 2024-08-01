@@ -123,13 +123,13 @@ class Query(BaseModel):
     limit: Optional[int] = None
 
 Example JSON output from the question: "What is total revenue in 2023?":
-{ 
-    "metrics": [ { "name": "total_revenue" } ],
+{{
+    "metrics": [ {{ "name": "total_revenue" }} ],
     "groupBy": null,
-    "where": [ { "sql": "year({{ TimeDimension('metric_time', 'DAY') }}) = 2023" } ],
+    "where": [ {{ "sql": "year({{{{ TimeDimension('metric_time', 'DAY') }}}}) = 2023" }} ],
     "orderBy": null,
     "limit": null 
-}
+}}
 
 Ensure accuracy and alignment with user intent.  Only return a JSON object.
 Examples follow:
