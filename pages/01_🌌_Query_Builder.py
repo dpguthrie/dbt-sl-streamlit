@@ -155,7 +155,7 @@ if "order_items" not in st.session_state:
     st.session_state.order_items = 0
 
 
-st.write("# View Your Metrics")
+st.write("# Build a Query")
 
 ad_hoc_tab, saved_query_tab = st.tabs(["Ad Hoc", "Saved Query"])
 
