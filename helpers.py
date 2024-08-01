@@ -177,15 +177,13 @@ def url_for_disco(conn: ConnAttr = None):
 
 
 def url_for_explorer(metrics: List[str], *, conn: ConnAttr = None):
-    if "account_id" not in st.session_state:
+    if "account_id" not in st.session_state or "project_id" not in st.session_state:
         return
-
-    if conn is None:
-        conn = st.session_state.conn
 
     metric_string = " ".join(f"+metric:{metric}" for metric in metrics)
     encoded_param = urllib.parse.quote_plus(metric_string)
-    environment_id = conn.params["environmentid"]
+    account_id = st.session_state.account_id
+    project_id = st.session_state.project_id
     host = get_access_url(conn)
-    full_url = f"{host}/explore/{st.session_state.account_id}/environments/{environment_id}/lineage/?select={encoded_param}"
+    full_url = f"{host}/explore/{account_id}/projects/{project_id}/environments/production/lineage/?select={encoded_param}"
     return full_url
