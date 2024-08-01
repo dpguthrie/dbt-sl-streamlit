@@ -37,8 +37,6 @@ blinker==1.8.2
     # via streamlit
 cachetools==5.4.0
     # via streamlit
-captcha==0.6.0
-    # via streamlit-authenticator
 certifi==2024.6.2
     # via
     #   dbt-sl-sdk
@@ -153,9 +151,7 @@ pandas==2.2.2
     #   altair
     #   streamlit
 pillow==10.4.0
-    # via
-    #   captcha
-    #   streamlit
+    # via streamlit
 plotly==5.23.0
     # via -r requirements.in
 protobuf==5.27.3
@@ -228,7 +224,7 @@ streamlit==1.37.0
     #   -r requirements.in
     #   extra-streamlit-components
     #   streamlit-authenticator
-streamlit-authenticator==0.3.3
+streamlit-authenticator==0.3.2
     # via -r requirements.in
 tenacity==8.5.0
     # via
