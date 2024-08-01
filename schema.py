@@ -212,6 +212,9 @@ from {{{{
             if keys == 1:
                 return item_dict["name"]
 
+            if keys == 2 and "grain" in item_dict:
+                return f'{item_dict["name"]}__{item_dict["grain"]}'
+
             return item_dict
 
         def inputs_to_dict(inputs):
@@ -222,10 +225,8 @@ from {{{{
             "group_by": inputs_to_dict(self.groupBy) if self.groupBy else [],
             "where": [w.sql for w in self.where] if self.where else [],
             "order_by": [
-                {
-                    "name": o.metric.name if o.metric else o.groupBy.name,
-                    "desc": o.descending if o.descending else False,
-                }
+                ("-" if o.descending else "")
+                + str_or_dict(o.metric if o.metric else o.groupBy)
                 for o in self.orderBy or []
             ],
             "limit": self.limit if self.limit else None,
