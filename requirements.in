@@ -9,3 +9,4 @@ streamlit-authenticator==0.3.2
 dbt-sl-sdk[sync]
 langchain-google-vertexai
 langchain-anthropic
+langchain-groq

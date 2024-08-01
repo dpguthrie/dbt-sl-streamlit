@@ -1,5 +1,5 @@
 MODELS = {
-    "OpenAI": {
+    "openai": {
         "gpt-3.5-turbo": {
             "description": "Most capable GPT-3.5 model, optimized for chat",
             "context_window": 4096,
@@ -56,7 +56,7 @@ MODELS = {
             "cost_output": "$0.03 / 1K tokens",
         },
     },
-    "Anthropic": {
+    "anthropic": {
         "claude-3-5-sonnet-20240620": {
             "description": "Latest and most capable Claude model, outperforming previous versions",
             "context_window": 200000,
@@ -89,7 +89,7 @@ MODELS = {
             "cost_output": "$24.00 / 1M tokens",
         },
     },
-    "Google": {
+    "google_vertexai": {
         "gemini-1.5-flash-001": {
             "description": "Speedier, distilled version of Gemini Pro",
             "context_window": 4096,
@@ -126,6 +126,45 @@ MODELS = {
             "context_window": 32768,
             "cost_input": "Not specified",
             "cost_output": "Not specified",
+        },
+    },
+    "groq": {
+        "llama-3.1-405b-reasoning": {
+            "description": "The Llama 3.1 instruction tuned text only models (8B, 70B, 405B) are optimized for multilingual dialogue use cases and outperform many of the available open source and closed chat models on common industry benchmarks.  **Currently, this model is limited only to paying customers.**",
+            "context_window": 131702,
+            "cost_input": "N/A",
+            "cost_output": "N/A",
+            "default": True,
+        },
+        "llama-3.1-70b-versatile": {
+            "description": "The Llama 3.1 instruction tuned text only models (8B, 70B, 405B) are optimized for multilingual dialogue use cases and outperform many of the available open source and closed chat models on common industry benchmarks.",
+            "context_window": 131702,
+            "cost_input": "N/A",
+            "cost_output": "N/A",
+        },
+        "llama-3.1-8b-instant": {
+            "description": "The Llama 3.1 instruction tuned text only models (8B, 70B, 405B) are optimized for multilingual dialogue use cases and outperform many of the available open source and closed chat models on common industry benchmarks.",
+            "context_window": 131702,
+            "cost_input": "N/A",
+            "cost_output": "N/A",
+        },
+        "llama3-70b-8192": {
+            "description": "The Llama 3 instruction tuned models are optimized for dialogue use cases and outperform many of the available open source chat models on common industry benchmarks.",
+            "context_window": 8192,
+            "cost_input": "N/A",
+            "cost_output": "N/A",
+        },
+        "llama3-groq-8b-8192-tool-use-preview": {
+            "description": "This is the 8B parameter version of the Llama 3 Groq Tool Use model, specifically designed for advanced tool use and function calling tasks.",
+            "context_window": 8192,
+            "cost_input": "N/A",
+            "cost_output": "N/A",
+        },
+        "mixtral-8x7b-32768": {
+            "description": "The Mixtral-8x7B Large Language Model (LLM) is a pretrained generative Sparse Mixture of Experts. The Mixtral-8x7B outperforms Llama 2 70B on most benchmarks we tested.",
+            "context_window": 32768,
+            "cost_input": "N/A",
+            "cost_output": "N/A",
         },
     },
 }

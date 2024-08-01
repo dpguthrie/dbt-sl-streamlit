@@ -118,8 +118,7 @@ class Query(BaseModel):
     metrics: List[MetricInput]
     groupBy: Optional[List[GroupByInput]] = None
     where: Optional[List[WhereInput]] = None
-    metricOrderBy: Optional[List[MetricOrderByInput]] = None
-    groupByOrderBy: Optional[List[GroupByOrderByInput]] = None
+    orderBy: Optional[List[OrderByInput]] = None
     limit: Optional[int] = None
 
 Example JSON output from the question: "What is total revenue in 2023?":
@@ -150,6 +149,7 @@ if question and st.session_state.get("refresh", False):
     try:
         llm = init_chat_model(
             model_name,
+            model_provider=provider_name,
             temperature=0,
             api_key=st.session_state._llm_api_key,
         )
