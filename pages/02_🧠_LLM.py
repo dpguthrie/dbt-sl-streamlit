@@ -3,11 +3,11 @@
 # third party
 import streamlit as st
 from langchain.chains import LLMChain
-from langchain.llms import OpenAI
 from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import PromptTemplate
 from langchain.prompts.few_shot import FewShotPromptTemplate
 from langchain.schema.output_parser import OutputParserException
+from langchain_openai import ChatOpenAI
 from pydantic.v1.error_wrappers import ValidationError
 
 # first party
@@ -46,20 +46,89 @@ def set_question():
     st.session_state.refresh = not previous_question == st.session_state._question
 
 
+OPENAI_MODELS = {
+    "gpt-3.5-turbo": {
+        "description": "Most capable GPT-3.5 model, optimized for chat",
+        "context_window": 4096,
+        "cost_input": "$0.0015 / 1K tokens",
+        "cost_output": "$0.002 / 1K tokens",
+    },
+    "gpt-3.5-turbo-16k": {
+        "description": "Same capabilities as standard gpt-3.5-turbo with 4x the context length",
+        "context_window": 16384,
+        "cost_input": "$0.003 / 1K tokens",
+        "cost_output": "$0.004 / 1K tokens",
+    },
+    "gpt-3.5-turbo-0125": {
+        "description": "Updated GPT-3.5 Turbo model",
+        "context_window": 16385,
+        "cost_input": "$0.0005 / 1K tokens",
+        "cost_output": "$0.0015 / 1K tokens",
+    },
+    "gpt-3.5-turbo-1106": {
+        "description": "Updated GPT-3.5 Turbo model from November 2023",
+        "context_window": 16385,
+        "cost_input": "$0.001 / 1K tokens",
+        "cost_output": "$0.002 / 1K tokens",
+    },
+    "gpt-4": {
+        "description": "Most capable GPT-4 model, great for tasks that require advanced reasoning",
+        "context_window": 8192,
+        "cost_input": "$0.03 / 1K tokens",
+        "cost_output": "$0.06 / 1K tokens",
+    },
+    "gpt-4-1106-preview": {
+        "description": "Updated GPT-4 Turbo model with improved instruction following",
+        "context_window": 128000,
+        "cost_input": "$0.01 / 1K tokens",
+        "cost_output": "$0.03 / 1K tokens",
+    },
+    "gpt-4o": {
+        "description": "Most advanced multimodal model, faster and cheaper than GPT-4 Turbo with stronger capabilities",
+        "context_window": 128000,
+        "cost_input": "$5.00 / 1M tokens",
+        "cost_output": "$5.00 / 1M tokens",
+    },
+    "gpt-4o-mini": {
+        "description": "Affordable and intelligent small model for fast, lightweight tasks",
+        "context_window": 128000,
+        "cost_input": "$0.15 / 1M tokens",
+        "cost_output": "$0.15 / 1M tokens",
+    },
+    "gpt-4-turbo-preview": {
+        "description": "Most capable GPT-4 model, optimized for speed",
+        "context_window": 128000,
+        "cost_input": "$0.01 / 1K tokens",
+        "cost_output": "$0.03 / 1K tokens",
+    },
+}
+
 st.write("# LLM Query Builder")
 
 st.markdown(
-    "Input your API Key below and ask questions abour your data.\n\n**This is highly experimental** "
-    "and not meant to handle every edge case.  Please feel free to report any issues (or open up a PR to fix)."
+    "Input your API Key and select a model in the sidebar to the left and ask "
+    "questions abour your data.\n\n**This is highly experimental** and not meant to "
+    "handle every edge case.  Please feel free to report any issues (or open up a PR "
+    "to fix)."
 )
 
-api_key = st.text_input(
-    label="API Key",
+api_key = st.sidebar.text_input(
+    label="OpenAI API Key",
     type="password",
     value=st.session_state.get("_openai_api_key", ""),
     placeholder="Enter your API Key",
     key="openai_api_key",
     on_change=set_openai_api_key,
+)
+
+OPENAI_MODEL_OPTIONS = list(OPENAI_MODELS.keys())
+DEFAULT_MODEL = "gpt-4o-mini"
+DEFAULT_MODEL_INDEX = OPENAI_MODEL_OPTIONS.index(DEFAULT_MODEL)
+
+model_name = st.sidebar.selectbox(
+    label="Select Model",
+    options=OPENAI_MODEL_OPTIONS,
+    index=DEFAULT_MODEL_INDEX,
 )
 
 question = st.text_input(
@@ -102,9 +171,9 @@ if question and st.session_state.get("refresh", False):
         st.warning("Please enter your OpenAI API Key")
         st.stop()
     try:
-        llm = OpenAI(
+        llm = ChatOpenAI(
             openai_api_key=st.session_state._openai_api_key,
-            model_name="gpt-3.5-turbo-1106",
+            model_name=model_name,
             temperature=0,
         )
     except ValidationError as e:

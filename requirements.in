@@ -1,0 +1,9 @@
+streamlit~=1.0
+plotly~=5.0
+requests~=2.32.0
+pyarrow~=16.0
+langchain~=0.2.0
+langchain-openai~=0.1.0
+langchain-core~=0.2.0
+streamlit-authenticator~=0.3.0
+dbt-sl-sdk[sync]

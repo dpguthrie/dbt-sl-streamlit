@@ -54,16 +54,24 @@ response = requests.post(url, json=payload, headers={{'Authorization': 'Bearer *
 
 def create_python_sdk_code(query: Query) -> str:
     arguments = query.sdk
-    arguments_str = ",\n".join([f"    {k}={v}" for k, v in arguments.items() if v])
+    arguments_str = ",\n".join(
+        [f"            {k}={v}" for k, v in arguments.items() if v]
+    )
     return f"""
-from dbtc import dbtCloudClient
+from dbtsl import SemanticLayerClient
 
-# Assumes that DBT_CLOUD_SERVICE_TOKEN is set as env var
-client = dbtCloudClient(environment_id={st.session_state.conn.params['environmentid']})
-qr = client.sl.query(\n{arguments_str}\n)
+client = SemanticLayerClient(
+    environment_id={st.session_state.conn.params['environmentid']},
+    auth_token="<your-semantic-layer-api-token>",
+    host="{st.session_state.conn.host.replace('https://', '')}",
+)
 
-# result will be a pandas dataframe as a default
-qr.result
+def main():
+    with client.session():
+        table = client.query(\n{arguments_str}\n        )
+        print(table)
+        
+main()
 """
 
 

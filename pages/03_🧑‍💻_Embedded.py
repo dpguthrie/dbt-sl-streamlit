@@ -7,71 +7,76 @@ import pandas as pd
 import streamlit as st
 import streamlit_authenticator as stauth
 import yaml
+from dbtsl import SemanticLayerClient
 from yaml.loader import SafeLoader
 
 # first party
-from client import ConnAttr, get_connection_attributes, get_query_results
-from helpers import to_arrow_table
-from schema import Query
+from client import get_connection_attributes
+
+st.set_page_config(
+    page_title="dbt Semantic Layer - Embedded Analytics",
+    page_icon="🧑‍💻",
+    layout="wide",
+)
 
 QUERIES = {
     "totals": {
-        "metrics": [
-            {"name": "total_revenue"},
-            {"name": "total_expense"},
-            {"name": "total_profit"},
-        ],
-        "groupBy": [
-            {"name": "metric_time__day", "grain": "DAY"},
-            {"name": "customer__nation"},
-            {"name": "customer__region"},
-            {"name": "customer__customer_balance_segment"},
-            {"name": "customer__customer_market_segment"},
+        "metrics": ["total_revenue", "total_expense", "total_profit"],
+        "group_by": [
+            "metric_time__day",
+            "customer__nation",
+            "customer__region",
+            "customer__customer_balance_segment",
+            "customer__customer_market_segment",
         ],
     },
     "expenses": {
-        "metrics": [{"name": "total_expense"}],
-        "groupBy": [
-            {"name": "metric_time", "grain": "DAY"},
-            {"name": "supplier__nation"},
-            {"name": "supplier__supplier_name"},
-            {"name": "customer_order__clerk_on_order"},
+        "metrics": ["total_expense"],
+        "group_by": [
+            "metric_time__day",
+            "supplier__nation",
+            "supplier__supplier_name",
+            "customer_order__clerk_on_order",
         ],
     },
 }
 
+conn = get_connection_attributes(st.secrets["JDBC_URL"])
+
+semantic_layer_client = SemanticLayerClient(
+    environment_id=conn.params["environmentid"],
+    auth_token=conn.auth_header.replace("Bearer ", ""),
+    host=conn.host.replace("https://", ""),
+)
+
 
 @st.cache_data(show_spinner=False)
 def retrieve_data(
-    conn: ConnAttr,
     user_id: int,
     *,
-    metrics: List[Dict] = None,
-    groupBy: List[Dict] = None,
-    where: List[Dict] = None,
-    orderBy: List[Dict] = None,
+    metrics: List[str] = None,
+    group_by: List[str] = None,
+    where: List[str] = None,
+    order_by: List[str] = None,
     limit: int = None,
 ) -> Dict:
-    user_filter = {"sql": f"{{{{ Dimension('customer__customer_id') }}}} = {user_id}"}
-    if where is None:
+    user_filter = f"{{{{ Dimension('customer__customer_id') }}}} = {user_id}"
+    if not where:
         where = [user_filter]
     else:
         where.append(user_filter)
-    query = Query(
-        metrics=metrics or [],
-        groupBy=groupBy or [],
-        orderBy=orderBy or [],
-        where=where,
-        limit=limit,
-    )
-    payload = {"query": query.gql, "variables": query.variables}
-    data = get_query_results(payload, progress=False, conn=conn)
-    df = to_arrow_table(data["arrowResult"])
+    with semantic_layer_client.session():
+        table = semantic_layer_client.query(
+            metrics=metrics,
+            group_by=group_by,
+            where=where,
+            order_by=order_by,
+            limit=limit,
+        )
+
+    df = table.to_pandas()
     df.columns = [col.lower() for col in df.columns]
-    return {
-        "df": df,
-        "query": query,
-    }
+    return df
 
 
 def create_filter_row(min_date: datetime, max_date: datetime):
@@ -106,7 +111,7 @@ def create_info_row(df: pd.DataFrame) -> None:
 
 
 def create_metrics_row(df: pd.DataFrame):
-    metrics = [metric["name"] for metric in QUERIES["totals"]["metrics"]]
+    metrics = QUERIES["totals"]["metrics"]
     col1, col2, col3 = st.columns(3)
     metrics_and_cols = {
         col1: {"name": metrics[0], "delta": 5},
@@ -185,31 +190,24 @@ def create_top_n_row(df: pd.DataFrame, n: int = 5) -> None:
 
 
 def build_app(user_id: int):
-    conn = get_connection_attributes(st.secrets["JDBC_URL"])
-    initial_data = retrieve_data(conn, user_id, **QUERIES["totals"])
-    expense_data = retrieve_data(conn, user_id, **QUERIES["expenses"])
-    min_date = initial_data["df"]["metric_time__day"].min()
-    max_date = initial_data["df"]["metric_time__day"].max()
+    initial_data_df = retrieve_data(user_id, **QUERIES["totals"])
+    expense_data_df = retrieve_data(user_id, **QUERIES["expenses"])
+    min_date = initial_data_df["metric_time__day"].min()
+    max_date = initial_data_df["metric_time__day"].max()
     st.header("View the Customer's Dashboard")
     st.divider()
     st.subheader(f"Customer: {st.session_state['name']}")
-    create_info_row(initial_data["df"])
+    create_info_row(initial_data_df)
     st.divider()
     create_filter_row(min_date, max_date)
     with st.container(border=True):
         st.subheader("Financial Metrics")
-        create_metrics_row(initial_data["df"])
-        create_time_series_row(initial_data["df"])
+        create_metrics_row(initial_data_df)
+        create_time_series_row(initial_data_df)
         st.subheader("Touchpoints")
         st.number_input(label="Top N", min_value=1, max_value=10, value=5, key="top_n")
-        create_top_n_row(expense_data["df"], st.session_state.top_n)
+        create_top_n_row(expense_data_df, st.session_state.top_n)
 
-
-st.set_page_config(
-    page_title="dbt Semantic Layer - Embedded Analytics",
-    page_icon="🧑‍💻",
-    layout="wide",
-)
 
 with open("./config.yaml") as file:
     config = yaml.load(file, Loader=SafeLoader)
@@ -253,138 +251,48 @@ user_filter = {"sql": f"{{ Dimension('customer__customer_id') }} = 5"}
     """,
     language="python",
 )
-full1.write(
-    "Entrypoint is through the `retrieve_data` function.  Relevant lines are 89-92"
-)
 full1.code(
-    body='''
+    body="""
 # stdlib
-import base64
 import os
-from typing import List, Dict
+from typing import List
 
 # third party
-import pandas as pd
-import pyarrow as pa
-import requests
+from dbtsl import SemanticLayerClient
 
 
-def submit_request(payload: Dict) -> Dict:
-    # TODO: Update for your particular host
-    url = "https://semantic-layer.cloud.getdbt.com/api/graphql"
-    if "variables" not in payload:
-        payload["variables"] = {}
-    
-    # TODO: Update for your environment ID
-    payload["variables"]["environmentId"] = 1
-    r = requests.post(
-        url,
-        json=payload,
-        headers={
-            "Authorization": f"Token {os.getenv('DBT_CLOUD_SERVICE_TOKEN')}",
-        },
-    )
-    return r.json()
-
-
-def get_query_results(payload: Dict) -> Dict:
-    json_data = submit_request(payload)
-    try:
-        query_id = json_data["data"]["createQuery"]["queryId"]
-    except TypeError:
-        error = json_data["errors"][0]["message"]
-        print(error)
-        raise
-
-    graphql_query = """
-        query GetResults($environmentId: BigInt!, $queryId: String!) {
-            query(environmentId: $environmentId, queryId: $queryId) {
-                arrowResult
-                error
-                queryId
-                sql
-                status
-            }
-        }
-    """
-    while True:
-
-        results_payload = {"variables": {"queryId": query_id}, "query": graphql_query}
-        json_data = submit_request(results_payload)
-        try:
-            json_data = json["data"]["query"]
-        except TypeError:
-            error = json_data["errors"][0]["message"]
-            raise
-
-        status = json_data["status"].lower()
-        if status in ["successful", "failed"]:
-            break
-
-    return data
-
-
-
-def to_arrow_table(
-    byte_string: str, to_pandas: bool = True
-) -> Union[pa.Table, pd.DataFrame]:
-    with pa.ipc.open_stream(base64.b64decode(byte_string)) as reader:
-        arrow_table = pa.Table.from_batches(reader, reader.schema)
-
-    if to_pandas:
-        return arrow_table.to_pandas()
-
-    return arrow_table
+client = SemanticLayerClient(
+    environment_id=1,
+    auth_token=os.environ["DBT_CLOUD_SERVICE_TOKEN"],
+    host="semantic-layer.cloud.getdbt.com",
+)
 
 
 def retrieve_data(
     user_id: int,
     *,
-    metrics: List[Dict] = None,
-    group_by: List[Dict] = None,
-    where: List[Dict] = None,
-    order_by: List[Dict] = None,
+    metrics: List[str] = None,
+    group_by: List[str] = None,
+    where: List[str] = None,
+    order_by: List[str] = None,
     limit: int = None,
 ) -> Dict:
-    user_filter = {"sql": f"{{{{ Dimension('customer__customer_id') }}}} = {user_id}"}
-    if where is None:
-        where = []
-    where.append(user_filter)
-    mut = """
-        mutation CreateQuery(
-            $environmentId: BigInt!,
-            $groupBy: [GroupByInput!]!,
-            $limit: Int,
-            $metrics: [MetricInput!]!,
-            $orderBy: [OrderByInput!]!,
-            $where: [WhereInput!]!,
-        ) {
-            createQuery(
-                environmentId: $environmentId
-                groupBy: $groupBy
-                limit: $limit
-                metrics: $metrics
-                orderBy: $orderBy
-                where: $where
-            ) {
-                queryId
-            }
-        }
-    """
-    variables = {
-        "variables": {
-            "metrics": metrics or [],
-            "groupBy": group_by or [],
-            "where": where,
-            "orderBy": order_by or [],
-            "limit": limit,
-        }
-    }
-    payload = {"query": mut, "variables": variables}
-    data = get_query_results(payload)
-    df = to_arrow_table(data["arrowResult"])
-    return df
-    ''',
+    user_filter = f"{{{{ Dimension('customer__customer_id') }}}} = {user_id}"
+    if not where:
+        where = [user_filter]
+    else:
+        where.append(user_filter)
+    with client.session():
+        table = client.query(
+            metrics=metrics,
+            group_by=group_by,
+            where=where,
+            order_by=order_by,
+            limit=limit,
+        )
+
+    return table
+    """,
     language="python",
     line_numbers=True,
 )
@@ -404,140 +312,48 @@ company_filter = {"sql": f"{{ Dimension('customer__company__company_id') }} = 2"
     """,
     language="python",
 )
-full2.write(
-    "Entrypoint is through the `retrieve_data` function.  Relevant lines are 89-94"
-)
 full2.code(
-    body='''
+    body="""
 # stdlib
-import base64
 import os
-from typing import List, Dict
+from typing import List
 
 # third party
-import pandas as pd
-import pyarrow as pa
-import requests
+from dbtsl import SemanticLayerClient
 
 
-def submit_request(payload: Dict) -> Dict:
-    # TODO: Update for your particular host
-    url = "https://semantic-layer.cloud.getdbt.com/api/graphql"
-    if "variables" not in payload:
-        payload["variables"] = {}
-    
-    # TODO: Update for your environment ID
-    payload["variables"]["environmentId"] = 1
-    r = requests.post(
-        url,
-        json=payload,
-        headers={
-            "Authorization": f"Token {os.getenv('DBT_CLOUD_SERVICE_TOKEN')}",
-        },
-    )
-    return r.json()
-
-
-def get_query_results(payload: Dict) -> Dict:
-    json_data = submit_request(payload)
-    try:
-        query_id = json_data["data"]["createQuery"]["queryId"]
-    except TypeError:
-        error = json_data["errors"][0]["message"]
-        print(error)
-        raise
-        
-    graphql_query = """
-        query GetResults($environmentId: BigInt!, $queryId: String!) {
-            query(environmentId: $environmentId, queryId: $queryId) {
-                arrowResult
-                error
-                queryId
-                sql
-                status
-            }
-        }
-    """
-    while True:
-
-        results_payload = {"variables": {"queryId": query_id}, "query": graphql_query}
-        json_data = submit_request(results_payload)
-        try:
-            json_data = json["data"]["query"]
-        except TypeError:
-            error = json_data["errors"][0]["message"]
-            raise
-
-        status = json_data["status"].lower()
-        if status in ["successful", "failed"]:
-            break
-
-    return data
-
-
-
-def to_arrow_table(
-    byte_string: str, to_pandas: bool = True
-) -> Union[pa.Table, pd.DataFrame]:
-    with pa.ipc.open_stream(base64.b64decode(byte_string)) as reader:
-        arrow_table = pa.Table.from_batches(reader, reader.schema)
-
-    if to_pandas:
-        return arrow_table.to_pandas()
-
-    return arrow_table
+client = SemanticLayerClient(
+    environment_id=1,
+    auth_token=os.environ["DBT_CLOUD_SERVICE_TOKEN"],
+    host="semantic-layer.cloud.getdbt.com",
+)
 
 
 def retrieve_data(
-    user: User,
+    user_id: int,
     *,
-    metrics: List[Dict] = None,
-    group_by: List[Dict] = None,
-    where: List[Dict] = None,
-    order_by: List[Dict] = None,
+    metrics: List[str] = None,
+    group_by: List[str] = None,
+    where: List[str] = None,
+    order_by: List[str] = None,
     limit: int = None,
 ) -> Dict:
-    user_filter = {
-        "sql": f"{{{{ Dimension('customer__company__company_id') }}}} = {user.company.id}"
-    }
-    if where is None:
-        where = []
-    where.append(user_filter)
-    mut = """
-        mutation CreateQuery(
-            $environmentId: BigInt!,
-            $groupBy: [GroupByInput!]!,
-            $limit: Int,
-            $metrics: [MetricInput!]!,
-            $orderBy: [OrderByInput!]!,
-            $where: [WhereInput!]!,
-        ) {
-            createQuery(
-                environmentId: $environmentId
-                groupBy: $groupBy
-                limit: $limit
-                metrics: $metrics
-                orderBy: $orderBy
-                where: $where
-            ) {
-                queryId
-            }
-        }
-    """
-    variables = {
-        "variables": {
-            "metrics": metrics or [],
-            "groupBy": group_by or [],
-            "where": where,
-            "orderBy": order_by or [],
-            "limit": limit,
-        }
-    }
-    payload = {"query": mut, "variables": variables}
-    data = get_query_results(payload)
-    df = to_arrow_table(data["arrowResult"])
-    return df
-    ''',
+    company_filter = f"{{{{ Dimension('customer__company__company_id') }}}} = {user.company.id}"
+    if not where:
+        where = [company_filter]
+    else:
+        where.append(company_filter)
+    with client.session():
+        table = client.query(
+            metrics=metrics,
+            group_by=group_by,
+            where=where,
+            order_by=order_by,
+            limit=limit,
+        )
+
+    return table
+    """,
     language="python",
     line_numbers=True,
 )
