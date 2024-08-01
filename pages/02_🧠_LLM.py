@@ -18,7 +18,7 @@ from llm.prompt import EXAMPLE_PROMPT
 from schema import Query
 
 st.set_page_config(
-    page_title="dbt Semantic Layer - View Metrics",
+    page_title="LLM",
     page_icon="🌌",
     layout="wide",
 )
@@ -106,7 +106,7 @@ OPENAI_MODELS = {
 st.write("# LLM Query Builder")
 
 st.markdown(
-    "Input your API Key and select a model in the sidebar to the left and ask "
+    "Input your OpenAI API Key and select a model in the sidebar to the left and ask "
     "questions abour your data.\n\n**This is highly experimental** and not meant to "
     "handle every edge case.  Please feel free to report any issues (or open up a PR "
     "to fix)."

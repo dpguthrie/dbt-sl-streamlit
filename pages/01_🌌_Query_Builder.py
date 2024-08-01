@@ -18,7 +18,7 @@ from queries import GRAPHQL_QUERIES
 from schema import Query, QueryLoader
 
 st.set_page_config(
-    page_title="dbt Semantic Layer - View Metrics",
+    page_title="Query Builder",
     page_icon="🌌",
     layout="wide",
 )

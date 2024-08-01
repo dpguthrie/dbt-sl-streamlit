@@ -14,7 +14,7 @@ from yaml.loader import SafeLoader
 from client import get_connection_attributes
 
 st.set_page_config(
-    page_title="dbt Semantic Layer - Embedded Analytics",
+    page_title="Embedded Analytics",
     page_icon="🧑‍💻",
     layout="wide",
 )

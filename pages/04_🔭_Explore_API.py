@@ -2,7 +2,7 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="dbt Semantic Layer - JDBC API",
+    page_title="Explore API",
     page_icon="🔭",
     layout="wide",
 )
