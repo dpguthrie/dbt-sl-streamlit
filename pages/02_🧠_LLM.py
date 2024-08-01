@@ -54,7 +54,7 @@ st.markdown(
 )
 
 api_key = st.text_input(
-    label="API Key",
+    label="OpenAI API Key",
     type="password",
     value=st.session_state.get("_openai_api_key", ""),
     placeholder="Enter your API Key",
