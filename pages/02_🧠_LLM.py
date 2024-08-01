@@ -1,13 +1,10 @@
-# stdlib
-
 # third party
 import streamlit as st
-from langchain.chains import LLMChain
+from langchain.chat_models import init_chat_model
 from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import PromptTemplate
 from langchain.prompts.few_shot import FewShotPromptTemplate
 from langchain.schema.output_parser import OutputParserException
-from langchain_openai import ChatOpenAI
 from pydantic.v1.error_wrappers import ValidationError
 
 # first party
@@ -15,6 +12,7 @@ from client import get_query_results
 from helpers import create_graphql_code, create_tabs, to_arrow_table
 from llm.examples import EXAMPLES
 from llm.prompt import EXAMPLE_PROMPT
+from llm.providers import MODELS
 from schema import Query
 
 st.set_page_config(
@@ -36,8 +34,12 @@ if "metric_dict" not in st.session_state:
     st.stop()
 
 
-def set_openai_api_key():
-    st.session_state._openai_api_key = st.session_state.openai_api_key
+def unset_llm_api_key():
+    st.session_state._llm_api_key = None
+
+
+def set_llm_api_key():
+    st.session_state._llm_api_key = st.session_state.llm_api_key
 
 
 def set_question():
@@ -45,63 +47,6 @@ def set_question():
     st.session_state._question = st.session_state.question
     st.session_state.refresh = not previous_question == st.session_state._question
 
-
-OPENAI_MODELS = {
-    "gpt-3.5-turbo": {
-        "description": "Most capable GPT-3.5 model, optimized for chat",
-        "context_window": 4096,
-        "cost_input": "$0.0015 / 1K tokens",
-        "cost_output": "$0.002 / 1K tokens",
-    },
-    "gpt-3.5-turbo-16k": {
-        "description": "Same capabilities as standard gpt-3.5-turbo with 4x the context length",
-        "context_window": 16384,
-        "cost_input": "$0.003 / 1K tokens",
-        "cost_output": "$0.004 / 1K tokens",
-    },
-    "gpt-3.5-turbo-0125": {
-        "description": "Updated GPT-3.5 Turbo model",
-        "context_window": 16385,
-        "cost_input": "$0.0005 / 1K tokens",
-        "cost_output": "$0.0015 / 1K tokens",
-    },
-    "gpt-3.5-turbo-1106": {
-        "description": "Updated GPT-3.5 Turbo model from November 2023",
-        "context_window": 16385,
-        "cost_input": "$0.001 / 1K tokens",
-        "cost_output": "$0.002 / 1K tokens",
-    },
-    "gpt-4": {
-        "description": "Most capable GPT-4 model, great for tasks that require advanced reasoning",
-        "context_window": 8192,
-        "cost_input": "$0.03 / 1K tokens",
-        "cost_output": "$0.06 / 1K tokens",
-    },
-    "gpt-4-1106-preview": {
-        "description": "Updated GPT-4 Turbo model with improved instruction following",
-        "context_window": 128000,
-        "cost_input": "$0.01 / 1K tokens",
-        "cost_output": "$0.03 / 1K tokens",
-    },
-    "gpt-4o": {
-        "description": "Most advanced multimodal model, faster and cheaper than GPT-4 Turbo with stronger capabilities",
-        "context_window": 128000,
-        "cost_input": "$5.00 / 1M tokens",
-        "cost_output": "$5.00 / 1M tokens",
-    },
-    "gpt-4o-mini": {
-        "description": "Affordable and intelligent small model for fast, lightweight tasks",
-        "context_window": 128000,
-        "cost_input": "$0.15 / 1M tokens",
-        "cost_output": "$0.15 / 1M tokens",
-    },
-    "gpt-4-turbo-preview": {
-        "description": "Most capable GPT-4 model, optimized for speed",
-        "context_window": 128000,
-        "cost_input": "$0.01 / 1K tokens",
-        "cost_output": "$0.03 / 1K tokens",
-    },
-}
 
 st.write("# LLM Query Builder")
 
@@ -112,23 +57,39 @@ st.markdown(
     "to fix)."
 )
 
-api_key = st.sidebar.text_input(
-    label="OpenAI API Key",
-    type="password",
-    value=st.session_state.get("_openai_api_key", ""),
-    placeholder="Enter your API Key",
-    key="openai_api_key",
-    on_change=set_openai_api_key,
+provider_name = st.sidebar.selectbox(
+    label="Select Provider",
+    options=list(MODELS.keys()),
+    on_change=unset_llm_api_key,
 )
 
-OPENAI_MODEL_OPTIONS = list(OPENAI_MODELS.keys())
-DEFAULT_MODEL = "gpt-4o-mini"
-DEFAULT_MODEL_INDEX = OPENAI_MODEL_OPTIONS.index(DEFAULT_MODEL)
+MODEL_OPTIONS = list(MODELS[provider_name].keys())
+DEFAULT_MODEL = [
+    k for k, v in MODELS[provider_name].items() if v.get("default", False)
+][0]
+DEFAULT_MODEL_INDEX = MODEL_OPTIONS.index(DEFAULT_MODEL)
 
 model_name = st.sidebar.selectbox(
     label="Select Model",
-    options=OPENAI_MODEL_OPTIONS,
+    options=MODEL_OPTIONS,
     index=DEFAULT_MODEL_INDEX,
+)
+
+MODEL_INFO = MODELS[provider_name][model_name]
+st.sidebar.markdown(
+    f"**Description**: {MODEL_INFO['description']}\n\n"
+    f"**Context Window**: {MODEL_INFO['context_window']}\n\n"
+    f"**Cost Input**: {MODEL_INFO['cost_input']}\n\n"
+    f"**Cost Output**: {MODEL_INFO['cost_output']}"
+)
+
+api_key = st.sidebar.text_input(
+    label="Provider API Key",
+    type="password",
+    value=st.session_state.get("_llm_api_key", ""),
+    placeholder="Enter your API Key",
+    key="llm_api_key",
+    on_change=set_llm_api_key,
 )
 
 question = st.text_input(
@@ -167,24 +128,32 @@ prompt = FewShotPromptTemplate(
 )
 
 if question and st.session_state.get("refresh", False):
-    if st.session_state.get("_openai_api_key", None) is None:
-        st.warning("Please enter your OpenAI API Key")
+    if st.session_state.get("_llm_api_key", None) is None:
+        st.warning(f"Please enter your {provider_name} API Key")
         st.stop()
     try:
-        llm = ChatOpenAI(
-            openai_api_key=st.session_state._openai_api_key,
-            model_name=model_name,
+        llm = init_chat_model(
+            model_name,
             temperature=0,
+            api_key=st.session_state._llm_api_key,
         )
     except ValidationError as e:
         st.write(e)
         st.stop()
 
-    chain = LLMChain(llm=llm, prompt=prompt)
-    output = chain.run(metrics=metrics, dimensions=dimensions, question=question)
     try:
-        query = parser.parse(output)
+        chain = prompt | llm | parser
+        query = chain.invoke(
+            {
+                "metrics": metrics,
+                "dimensions": dimensions,
+                "question": question,
+            }
+        )
     except OutputParserException as e:
+        st.error(e)
+        st.stop()
+    except Exception as e:
         st.error(e)
         st.stop()
     python_code = create_graphql_code(query)

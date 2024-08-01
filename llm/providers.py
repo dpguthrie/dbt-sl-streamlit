@@ -1,0 +1,131 @@
+MODELS = {
+    "OpenAI": {
+        "gpt-3.5-turbo": {
+            "description": "Most capable GPT-3.5 model, optimized for chat",
+            "context_window": 4096,
+            "cost_input": "$0.0015 / 1K tokens",
+            "cost_output": "$0.002 / 1K tokens",
+        },
+        "gpt-3.5-turbo-16k": {
+            "description": "Same capabilities as standard gpt-3.5-turbo with 4x the context length",
+            "context_window": 16384,
+            "cost_input": "$0.003 / 1K tokens",
+            "cost_output": "$0.004 / 1K tokens",
+        },
+        "gpt-3.5-turbo-0125": {
+            "description": "Updated GPT-3.5 Turbo model",
+            "context_window": 16385,
+            "cost_input": "$0.0005 / 1K tokens",
+            "cost_output": "$0.0015 / 1K tokens",
+        },
+        "gpt-3.5-turbo-1106": {
+            "description": "Updated GPT-3.5 Turbo model from November 2023",
+            "context_window": 16385,
+            "cost_input": "$0.001 / 1K tokens",
+            "cost_output": "$0.002 / 1K tokens",
+        },
+        "gpt-4": {
+            "description": "Most capable GPT-4 model, great for tasks that require advanced reasoning",
+            "context_window": 8192,
+            "cost_input": "$0.03 / 1K tokens",
+            "cost_output": "$0.06 / 1K tokens",
+        },
+        "gpt-4-1106-preview": {
+            "description": "Updated GPT-4 Turbo model with improved instruction following",
+            "context_window": 128000,
+            "cost_input": "$0.01 / 1K tokens",
+            "cost_output": "$0.03 / 1K tokens",
+        },
+        "gpt-4o": {
+            "description": "Most advanced multimodal model, faster and cheaper than GPT-4 Turbo with stronger capabilities",
+            "context_window": 128000,
+            "cost_input": "$5.00 / 1M tokens",
+            "cost_output": "$5.00 / 1M tokens",
+        },
+        "gpt-4o-mini": {
+            "description": "Affordable and intelligent small model for fast, lightweight tasks",
+            "context_window": 128000,
+            "cost_input": "$0.15 / 1M tokens",
+            "cost_output": "$0.15 / 1M tokens",
+            "default": True,
+        },
+        "gpt-4-turbo-preview": {
+            "description": "Most capable GPT-4 model, optimized for speed",
+            "context_window": 128000,
+            "cost_input": "$0.01 / 1K tokens",
+            "cost_output": "$0.03 / 1K tokens",
+        },
+    },
+    "Anthropic": {
+        "claude-3-5-sonnet-20240620": {
+            "description": "Latest and most capable Claude model, outperforming previous versions",
+            "context_window": 200000,
+            "cost_input": "Not specified",
+            "cost_output": "Not specified",
+            "default": True,
+        },
+        "claude-3-haiku-20240307": {
+            "description": "Fast and cost-effective model with text and image input capabilities",
+            "context_window": 200000,
+            "cost_input": "$0.25 / 1M tokens",
+            "cost_output": "$1.25 / 1M tokens",
+        },
+        "claude-3-opus-20240229": {
+            "description": "Powerful Claude 3 model, excels at writing and complex tasks",
+            "context_window": 200000,
+            "cost_input": "$15.00 / 1M tokens",
+            "cost_output": "$75.00 / 1M tokens",
+        },
+        "claude-3-sonnet-20240229": {
+            "description": "Balance of speed and intelligence for a wide range of tasks",
+            "context_window": 200000,
+            "cost_input": "$3.00 / 1M tokens",
+            "cost_output": "$15.00 / 1M tokens",
+        },
+        "claude-2.1": {
+            "description": "Updated version of Claude 2 with improved accuracy",
+            "context_window": 200000,
+            "cost_input": "$8.00 / 1M tokens",
+            "cost_output": "$24.00 / 1M tokens",
+        },
+    },
+    "Google": {
+        "gemini-1.5-flash-001": {
+            "description": "Speedier, distilled version of Gemini Pro",
+            "context_window": 4096,
+            "cost_input": "Not specified",
+            "cost_output": "Not specified",
+        },
+        "gemini-1.5-pro-001": {
+            "description": "Latest version of Gemini Pro",
+            "context_window": 8192,
+            "cost_input": "Not specified",
+            "cost_output": "Not specified",
+            "default": True,
+        },
+        "gemini-1.0-pro": {
+            "description": "Original Gemini Pro model",
+            "context_window": 32768,
+            "cost_input": "Not specified",
+            "cost_output": "Not specified",
+        },
+        "gemini-1.0-pro-001": {
+            "description": "Gemini Pro model with vision capabilities",
+            "context_window": 32768,
+            "cost_input": "Not specified",
+            "cost_output": "Not specified",
+        },
+        "gemini-1.0-pro-vision-001": {
+            "description": "Gemini Pro model specifically for vision tasks",
+            "context_window": 32768,
+            "cost_input": "Not specified",
+            "cost_output": "Not specified",
+        },
+        "gemini-1.0-pro-002": {
+            "description": "Updated version of Gemini Pro",
+            "context_window": 32768,
+            "cost_input": "Not specified",
+            "cost_output": "Not specified",
+        },
+    },
+}
