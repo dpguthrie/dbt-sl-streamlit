@@ -78,7 +78,7 @@ model_name = st.sidebar.selectbox(
 MODEL_INFO = MODELS[provider_name][model_name]
 st.sidebar.markdown(
     f"**Description**: {MODEL_INFO['description']}\n\n"
-    f"**Context Window**: {MODEL_INFO['context_window']}\n\n"
+    f"**Context Window**: {MODEL_INFO['context_window']:,} Tokens\n\n"
     f"**Cost Input**: {MODEL_INFO['cost_input']}\n\n"
     f"**Cost Output**: {MODEL_INFO['cost_output']}"
 )
