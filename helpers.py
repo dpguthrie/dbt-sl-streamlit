@@ -198,7 +198,7 @@ def construct_cli_command(query: Query):
         command += f" --group-by {group_by}"
 
     if query.where:
-        where_str = ",".join([w.sql for w in query.where])
+        where_str = " AND ".join([w.sql for w in query.where])
         command += f' --where "{where_str}"'
 
     if query.limit:
