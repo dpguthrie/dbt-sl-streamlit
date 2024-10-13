@@ -85,6 +85,9 @@ def get_categorical_kwargs(dimension: str, operator: str):
             data = get_query_results(
                 payload, key="createDimensionValuesQuery", progress=False
             )
+            if isinstance(data, str):
+                st.error(data)
+                st.stop()
             df = to_arrow_table(data["arrowResult"])
         kwargs["options"] = sorted(df.iloc[:, 0].tolist())
         kwargs["label"] = (
@@ -323,6 +326,9 @@ with ad_hoc_tab:
 
         payload = {"query": query.gql, "variables": query.variables}
         data = get_query_results(payload)
+        if isinstance(data, str):
+            st.error(data)
+            st.stop()
         df = to_arrow_table(data["arrowResult"])
         df.columns = [col.lower() for col in df.columns]
         st.session_state.query_qm = query
@@ -378,6 +384,9 @@ with saved_query_tab:
         if st.button("Submit Query", key="submit_query_sq"):
             payload = {"query": query.gql, "variables": query.variables}
             data = get_query_results(payload)
+            if isinstance(data, str):
+                st.error(data)
+                st.stop()
             df = to_arrow_table(data["arrowResult"])
             df.columns = [col.lower() for col in df.columns]
             st.session_state.query_sq = query

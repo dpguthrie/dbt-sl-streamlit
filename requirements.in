@@ -10,3 +10,6 @@ dbt-sl-sdk[sync]
 langchain-google-vertexai
 langchain-anthropic
 langchain-groq
+langchain-chroma
+langgraph
+streamlit-feedback

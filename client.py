@@ -78,8 +78,8 @@ def get_query_results(
     except TypeError:
         if progress:
             progress_bar.progress(80, "Query Failed!")
-        st.error(json["errors"][0]["message"])
-        st.stop()
+        return json["errors"][0]["message"]
+
     while True:
         graphql_query = GRAPHQL_QUERIES["get_results"]
         results_payload = {"variables": {"queryId": query_id}, "query": graphql_query}
@@ -89,26 +89,25 @@ def get_query_results(
         except TypeError:
             if progress:
                 progress_bar.progress(80, "Query Failed!")
-            st.error(json["errors"][0]["message"])
-            st.stop()
+            return json["errors"][0]["message"]
+
+        status = data["status"].lower()
+        if status == "successful":
+            if progress:
+                progress_bar.progress(100, "Query Successful!")
+            break
+        elif status == "failed":
+            if progress:
+                progress_bar.progress(
+                    (RESULT_STATUSES.index(status) + 1) * 20, "red:Query Failed!"
+                )
+            return data["error"]
+
         else:
-            status = data["status"].lower()
-            if status == "successful":
-                if progress:
-                    progress_bar.progress(100, "Query Successful!")
-                break
-            elif status == "failed":
-                if progress:
-                    progress_bar.progress(
-                        (RESULT_STATUSES.index(status) + 1) * 20, "red:Query Failed!"
-                    )
-                st.error(data["error"])
-                st.stop()
-            else:
-                if progress:
-                    progress_bar.progress(
-                        (RESULT_STATUSES.index(status) + 1) * 20,
-                        f"Query is {status.capitalize()}...",
-                    )
+            if progress:
+                progress_bar.progress(
+                    (RESULT_STATUSES.index(status) + 1) * 20,
+                    f"Query is {status.capitalize()}...",
+                )
 
     return data

@@ -2,16 +2,41 @@ GRAPHQL_QUERIES = {
     "metrics": """
 query GetMetrics($environmentId: BigInt!) {
   metrics(environmentId: $environmentId) {
-    description
     name
-    queryableGranularities
-    type
-    requiresMetricTime
+    label
+    description
+    config {
+      meta
+    }
     dimensions {
       description
+      expr
+      isPartition
+      label
       name
+      qualifiedName
+      queryableGranularities
       type
     }
+    entities {
+      description
+      expr
+      name
+      role
+      type
+    }
+    filter {
+      whereSqlTemplate
+    }
+    measures {
+      agg
+      aggTimeDimension
+      expr
+      name
+    }
+    queryableGranularities
+    requiresMetricTime
+    type
   }
 }
     """,

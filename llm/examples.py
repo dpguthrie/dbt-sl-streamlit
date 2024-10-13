@@ -136,7 +136,7 @@ EXAMPLES = [
     },
     {
         "metrics": "total_revenue, total_expense, total_profit, total_customers, monthly_customers, weekly_customers, daily_customers",
-        "dimensions": "department, salesperson, cost_center, metric_time, product__product_category, customer__region, customer__balance_segment",
+        "dimensions": "department, salesperson__name, salesperson__id, cost_center, metric_time, product__product_category, customer__region, customer__balance_segment",
         "question": "Can you give me the top 10 sales people by revenue in September 2023?",
         "result": Query.model_validate(
             {
@@ -144,7 +144,7 @@ EXAMPLES = [
                     {"name": "total_revenue"},
                 ],
                 "groupBy": [
-                    {"name": "salesperson"},
+                    {"name": "salesperson__name"},
                 ],
                 "where": [
                     {
