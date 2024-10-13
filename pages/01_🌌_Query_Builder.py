@@ -8,6 +8,7 @@ import streamlit as st
 # first party
 from client import get_query_results
 from helpers import (
+    construct_cli_command,
     create_graphql_code,
     create_python_sdk_code,
     create_tabs,
@@ -306,7 +307,7 @@ with ad_hoc_tab:
 
     query = QueryLoader(st.session_state).create()
     with st.expander("View API Request", expanded=False):
-        tab1, tab2, tab3 = st.tabs(["GraphQL", "JDBC", "Python SDK"])
+        tab1, tab2, tab3, tab4 = st.tabs(["GraphQL", "JDBC", "Python SDK", "CLI"])
         python_code = create_graphql_code(query)
         sdk_code = create_python_sdk_code(query)
         tab1.code(python_code, language="python")
@@ -315,6 +316,8 @@ with ad_hoc_tab:
             "More info [here](https://github.com/dbt-labs/semantic-layer-sdk-python)"
         )
         tab3.code(sdk_code, language="python")
+        cli_command = construct_cli_command(query)
+        tab4.code(cli_command, language="bash")
 
     if st.button("Submit Query"):
         if len(st.session_state.selected_metrics) == 0:
