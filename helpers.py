@@ -187,3 +187,37 @@ def url_for_explorer(metrics: List[str], *, conn: ConnAttr = None):
     host = get_access_url(conn)
     full_url = f"{host}/explore/{account_id}/projects/{project_id}/environments/production/lineage/?select={encoded_param}"
     return full_url
+
+
+def construct_cli_command(query: Query):
+    metrics = ",".join(query.metric_names)
+    group_by = ",".join(query.dimension_names)
+    command = f"dbt sl query --metrics {metrics}"
+
+    if group_by:
+        command += f" --group-by {group_by}"
+
+    if query.where:
+        where_str = ",".join([w.sql for w in query.where])
+        command += f' --where "{where_str}"'
+
+    if query.limit:
+        command += f" --limit {query.limit}"
+
+    if query.orderBy:
+        order_by_inputs = []
+        for order_by_input in query.orderBy:
+            if order_by_input.metric:
+                col = order_by_input.metric.name
+            else:
+                col = order_by_input.groupBy.name
+                if order_by_input.groupBy.grain:
+                    col += f"__{order_by_input.groupBy.grain}"
+            if order_by_input.descending:
+                col = f"-{col}"
+            order_by_inputs.append(col)
+
+        order_by = ",".join(order_by_inputs)
+        command += f" --order-by {order_by}"
+
+    return command
