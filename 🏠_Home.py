@@ -8,6 +8,7 @@ import streamlit.components.v1 as components
 # first party
 from client import get_connection_attributes, submit_request
 from helpers import url_for_disco
+from llm.semantic_layer_docs import create_chroma_db
 from queries import GRAPHQL_QUERIES
 
 
@@ -67,6 +68,7 @@ def prepare_app():
                     "and a production job has been run successfully."
                 )
         else:
+            create_chroma_db(metrics)
             st.session_state.metric_dict = {m["name"]: m for m in metrics}
             st.session_state.dimension_dict = {
                 dim["name"]: dim for metric in metrics for dim in metric["dimensions"]

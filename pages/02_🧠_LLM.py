@@ -1,17 +1,19 @@
 # third party
 import streamlit as st
 from langchain.chat_models import init_chat_model
-from langchain.output_parsers import PydanticOutputParser
-from langchain.prompts import PromptTemplate
-from langchain.prompts.few_shot import FewShotPromptTemplate
-from langchain.schema.output_parser import OutputParserException
-from pydantic.v1.error_wrappers import ValidationError
+from langchain_community.chat_message_histories import StreamlitChatMessageHistory
+from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.output_parsers import PydanticOutputParser, StrOutputParser
+from langchain_core.runnables import RunnableConfig, RunnablePassthrough
+from langchain_core.tracers import LangChainTracer
+from langchain_core.tracers.run_collector import RunCollectorCallbackHandler
+from langsmith import Client
+from streamlit_feedback import streamlit_feedback
 
 # first party
 from client import get_query_results
-from helpers import create_graphql_code, create_tabs, to_arrow_table
-from llm.examples import EXAMPLES
-from llm.prompt import EXAMPLE_PROMPT
+from helpers import create_tabs, to_arrow_table
+from llm.prompt import intent_prompt, metadata_prompt, query_prompt, rephrase_prompt
 from llm.providers import MODELS
 from schema import Query
 
@@ -48,14 +50,30 @@ def set_question():
     st.session_state.refresh = not previous_question == st.session_state._question
 
 
-st.write("# LLM Query Builder")
+# Set up tracing via Lanngsmith
+langchain_endpoint = "https://api.smith.langchain.com"
+client = Client(api_url=langchain_endpoint, api_key=st.secrets["LANGCHAIN_API_KEY"])
+ls_tracer = LangChainTracer(project_name="default", client=client)
+run_collector = RunCollectorCallbackHandler()
+cfg = RunnableConfig()
+cfg["callbacks"] = [ls_tracer, run_collector]
+
+# Initialize Streamlit Chat Message History
+msgs = StreamlitChatMessageHistory(key="messages")
+
+
+st.write("# Conversational Analytics")
 
 st.markdown(
-    "Input your OpenAI API Key and select a model in the sidebar to the left and ask "
-    "questions abour your data.\n\n**This is highly experimental** and not meant to "
-    "handle every edge case.  Please feel free to report any issues (or open up a PR "
-    "to fix)."
+    """
+Welcome to the natural language interface to your data!  Start asking questions like:
+- What metrics can I query?
+- What dimensions are available for revenue?
+- Show me the top 10 customers by revenue
+"""
 )
+
+reset_history = st.sidebar.button("Reset chat history")
 
 provider_name = st.sidebar.selectbox(
     label="Select Provider",
@@ -92,96 +110,130 @@ api_key = st.sidebar.text_input(
     on_change=set_llm_api_key,
 )
 
-question = st.text_input(
-    label="Ask a question",
-    placeholder="e.g. What is total revenue?",
-    key="question",
-    on_change=set_question,
+llm = init_chat_model(
+    model_name,
+    model_provider=provider_name,
+    temperature=0,
+    api_key=st.session_state.get("_llm_api_key", ""),
 )
 
-metrics = ", ".join(list(st.session_state.metric_dict.keys()))
-dimensions = ", ".join(list(st.session_state.dimension_dict.keys()))
+if len(msgs.messages) == 0 or reset_history:
+    msgs.clear()
+    msgs.add_ai_message("How can I help you?")
+    st.session_state.last_run = None
 
-parser = PydanticOutputParser(pydantic_object=Query)
+avatars = {"human": "user", "ai": "assistant"}
+human_messages = []
+for msg in msgs.messages:
+    if msg.type == "human":
+        st.chat_message(avatars[msg.type]).write(msg.content)
+        human_messages.append(msg.content)
+    else:
+        if (
+            "route" in msg.additional_kwargs
+            and msg.additional_kwargs["route"] == "query"
+        ):
+            create_tabs(st.session_state, msg.additional_kwargs["run_id"])
+        else:
+            st.chat_message(avatars[msg.type]).write(msg.content)
 
-prompt_example = PromptTemplate(
-    template=EXAMPLE_PROMPT,
-    input_variables=["metrics", "dimensions", "question", "result"],
+rephrase_chain = rephrase_prompt | llm | StrOutputParser()
+intent_chain = intent_prompt | llm | StrOutputParser()
+query_chain = query_prompt | llm | PydanticOutputParser(pydantic_object=Query)
+retriever = st.session_state.db.as_retriever(
+    search_type="mmr",
+    search_kwargs={
+        "k": 6,
+        "fetch_k": 20,
+        "lambda_mult": 0.6,
+    },
+)
+metadata_chain = (
+    {"context": retriever, "question": RunnablePassthrough()}
+    | metadata_prompt
+    | llm
+    | StrOutputParser()
 )
 
-prefix = """
-You are an AI assistant that creates SQL queries based on user input and dbt Semantic 
-Layer context. Generate a JSON object, and only a JSON object, matching this Pydantic
-model:
-
-class Query(BaseModel):
-    metrics: List[MetricInput]
-    groupBy: Optional[List[GroupByInput]] = None
-    where: Optional[List[WhereInput]] = None
-    orderBy: Optional[List[OrderByInput]] = None
-    limit: Optional[int] = None
-
-Example JSON output from the question: "What is total revenue in 2023?":
-{{
-    "metrics": [ {{ "name": "total_revenue" }} ],
-    "groupBy": null,
-    "where": [ {{ "sql": "year({{{{ TimeDimension('metric_time', 'DAY') }}}}) = 2023" }} ],
-    "orderBy": null,
-    "limit": null 
-}}
-
-Ensure accuracy and alignment with user intent.  Only return a JSON object.
-Examples follow:
-"""
-
-prompt = FewShotPromptTemplate(
-    examples=EXAMPLES,
-    example_prompt=prompt_example,
-    prefix=prefix,
-    suffix="Metrics: {metrics}\nDimensions: {dimensions}\nQuestion: {question}\nResult:\n",
-    input_variables=["metrics", "dimensions", "question"],
-)
-
-if question and st.session_state.get("refresh", False):
+if input := st.chat_input(placeholder="What is total revenue in June?"):
     if st.session_state.get("_llm_api_key", None) is None:
         st.warning(f"Please enter your {provider_name} API Key")
         st.stop()
-    try:
-        llm = init_chat_model(
-            model_name,
-            model_provider=provider_name,
-            temperature=0,
-            api_key=st.session_state._llm_api_key,
-        )
-    except ValidationError as e:
-        st.write(e)
-        st.stop()
 
-    try:
-        chain = prompt | llm | parser
-        query = chain.invoke(
-            {
-                "metrics": metrics,
-                "dimensions": dimensions,
-                "question": question,
-            }
+    msgs.add_user_message(input)
+    with st.status("Thinking...", expanded=True) as status:
+        st.write("Rephrasing question ... ")
+        question = rephrase_chain.invoke(
+            {"chat_history": human_messages, "input": input}, cfg
         )
-    except OutputParserException as e:
-        st.error(e)
-        st.stop()
-    except Exception as e:
-        st.error(e)
-        st.stop()
-    python_code = create_graphql_code(query)
-    with st.expander("View API Request", expanded=False):
-        st.code(python_code, language="python")
-    payload = {"query": query.gql, "variables": query.variables}
-    data = get_query_results(payload, source="streamlit-llm")
-    df = to_arrow_table(data["arrowResult"])
-    df.columns = [col.lower() for col in df.columns]
-    st.session_state.query_llm = query
-    st.session_state.df_llm = df
-    st.session_state.compiled_sql_llm = data["sql"]
+        st.write("Determining intent...")
+        intent = intent_chain.invoke({"question": question}, cfg)
+        if intent == "query":
+            st.write("Creating semantic layer request...")
+            query = query_chain.invoke(
+                {
+                    "metrics": ", ".join(list(st.session_state.metric_dict.keys())),
+                    "dimensions": ", ".join(
+                        list(st.session_state.dimension_dict.keys())
+                    ),
+                    "question": question,
+                }
+            )
+            payload = {"query": query.gql, "variables": query.variables}
+            st.write("Querying semantic layer...")
+            try:
+                data = get_query_results(payload, source="streamlit-llm")
+            except Exception as e:
+                st.warning(e)
+                status.update(label="Failed", state="error")
+            df = to_arrow_table(data["arrowResult"])
+            df.columns = [col.lower() for col in df.columns]
+            run_id = run_collector.traced_runs[0].id
+            setattr(st.session_state, f"query_{run_id}", query)
+            setattr(st.session_state, f"df_{run_id}", df)
+            setattr(st.session_state, f"compiled_sql_{run_id}", data["sql"])
+        else:
+            st.write("Retrieving metadata...")
+            run_id = run_collector.traced_runs[0].id
+            content = metadata_chain.invoke(input)
 
-st.session_state.refresh = False
-create_tabs(st.session_state, "llm")
+        status.update(label="Complete!", expanded=False, state="complete")
+
+    human_messages.append(HumanMessage(content=input))
+    st.session_state.last_run = run_id
+
+    if intent == "query":
+
+        create_tabs(st.session_state, run_id)
+        msgs.add_ai_message(
+            AIMessage(
+                content=str(query),
+                additional_kwargs={"run_id": run_id, "route": intent},
+            )
+        )
+    else:
+        st.markdown(content)
+        msgs.add_ai_message(
+            AIMessage(
+                content=content,
+                additional_kwargs={"run_id": run_id, "route": intent},
+            )
+        )
+
+if st.session_state.get("last_run"):
+    # run_url = get_run_url(st.session_state.last_run)
+    # st.sidebar.markdown(f"[Latest Trace: 🛠️]({run_url})")
+    feedback = streamlit_feedback(
+        feedback_type="thumbs",
+        optional_text_label="[Optional] Please provide an explanation",
+        key=f"feedback_{st.session_state.last_run}",
+    )
+    if feedback:
+        scores = {"👎": 0, "👍": 1}
+        client.create_feedback(
+            st.session_state.last_run,
+            feedback["type"],
+            score=scores[feedback["score"]],
+            comment=feedback.get("text", None),
+        )
+        st.toast("Feedback recorded!", icon="📝")
