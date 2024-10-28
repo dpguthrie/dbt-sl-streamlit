@@ -33,6 +33,8 @@ Based on the user's question, classify the intent as one of the following:
 - "query" - This is for when the user actually wants to see data and query directly
   from the semantic layer.  In this question, the user is asking for something very
   specific related to metric(s) and/or dimension(s) defined in their project.
+  
+IMPORTANT:  Only return either "query" or "metadata".
 
 Question:
 {question}
