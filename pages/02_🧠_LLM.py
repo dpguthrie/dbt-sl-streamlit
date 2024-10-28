@@ -177,7 +177,8 @@ if input := st.chat_input(placeholder="What is total revenue in June?"):
                         list(st.session_state.dimension_dict.keys())
                     ),
                     "question": question,
-                }
+                },
+                cfg,
             )
             payload = {"query": query.gql, "variables": query.variables}
             st.write("Querying semantic layer...")
@@ -186,6 +187,7 @@ if input := st.chat_input(placeholder="What is total revenue in June?"):
             except Exception as e:
                 st.warning(e)
                 status.update(label="Failed", state="error")
+                st.stop()
             df = to_arrow_table(data["arrowResult"])
             df.columns = [col.lower() for col in df.columns]
             run_id = run_collector.traced_runs[0].id
@@ -194,8 +196,8 @@ if input := st.chat_input(placeholder="What is total revenue in June?"):
             setattr(st.session_state, f"compiled_sql_{run_id}", data["sql"])
         else:
             st.write("Retrieving metadata...")
+            content = metadata_chain.invoke(input, cfg)
             run_id = run_collector.traced_runs[0].id
-            content = metadata_chain.invoke(input)
 
         status.update(label="Complete!", expanded=False, state="complete")
 
