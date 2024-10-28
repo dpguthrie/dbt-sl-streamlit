@@ -1,17 +1,11 @@
 from langchain_core.prompts import (
     ChatPromptTemplate,
+    FewShotPromptTemplate,
     MessagesPlaceholder,
     PromptTemplate,
 )
 
-EXAMPLE_PROMPT = """
-Available metrics: {metrics}.
-Available dimensions: {dimensions}.
-
-User question: {question}
-Result: {result}
-"""
-
+from llm.examples import EXAMPLES
 
 rephrase_system_prompt = (
     "Given a chat history and the latest user question "
@@ -40,11 +34,54 @@ Based on the user's question, classify the intent as one of the following:
   from the semantic layer.  In this question, the user is asking for something very
   specific related to metric(s) and/or dimension(s) defined in their project.
 
-Conversation history:
-{history}
-
-Latest message:
-{latest_message}
+Question:
+{question}
 
 Determine the intent:"""
+)
+
+prefix = """
+You are an AI assistant that creates SQL queries based on user input and dbt Semantic 
+Layer context. Generate a JSON object, and only a JSON object, matching this Pydantic
+model:
+
+class Query(BaseModel):
+    metrics: List[MetricInput]
+    groupBy: Optional[List[GroupByInput]] = None
+    where: Optional[List[WhereInput]] = None
+    orderBy: Optional[List[OrderByInput]] = None
+    limit: Optional[int] = None
+
+Example JSON output from the question: "What is total revenue in 2023?":
+{{
+    "metrics": [ {{ "name": "total_revenue" }} ],
+    "groupBy": null,
+    "where": [ {{ "sql": "year({{{{ TimeDimension('metric_time', 'DAY') }}}}) = 2023" }} ],
+    "orderBy": null,
+    "limit": null 
+}}
+
+Ensure accuracy and alignment with user intent.  Only return a JSON object.
+Examples follow:
+"""
+
+QUERY_EXAMPLE_PROMPT = """
+Available metrics: {metrics}.
+Available dimensions: {dimensions}.
+
+User question: {question}
+Result: {result}
+"""
+
+query_prompt_example = PromptTemplate(
+    template=QUERY_EXAMPLE_PROMPT,
+    input_variables=["metrics", "dimensions", "question", "result"],
+)
+
+query_prompt = FewShotPromptTemplate(
+    examples=EXAMPLES,
+    example_prompt=query_prompt_example,
+    prefix=prefix,
+    suffix="Metrics: {metrics}\nDimensions: {dimensions}\nQuestion: {question}\nResult:\n",
+    input_variables=["metrics", "dimensions", "question"],
 )
