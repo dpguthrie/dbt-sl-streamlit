@@ -87,3 +87,11 @@ query_prompt = FewShotPromptTemplate(
     suffix="Metrics: {metrics}\nDimensions: {dimensions}\nQuestion: {question}\nResult:\n",
     input_variables=["metrics", "dimensions", "question"],
 )
+
+
+metadata_prompt = ChatPromptTemplate.from_template(
+    "Use this context to answer the user's question: {context} "
+    "Your response should include only information contained within the "
+    "provided context and should use appropriate markdown syntax."
+    "User's question: {question}\nResponse:"
+)
