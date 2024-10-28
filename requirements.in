@@ -10,3 +10,4 @@ dbt-sl-sdk[sync]
 langchain-google-vertexai
 langchain-anthropic
 langchain-groq
+langsmith

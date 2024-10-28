@@ -199,6 +199,7 @@ langchain-text-splitters==0.2.2
     # via langchain
 langsmith==0.1.95
     # via
+    #   -r requirements.in
     #   langchain
     #   langchain-core
 markdown-it-py==3.0.0
