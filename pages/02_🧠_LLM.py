@@ -1,22 +1,19 @@
 # third party
 import streamlit as st
-from langchain.chains import SimpleSequentialChain
 from langchain.chat_models import init_chat_model
-from langchain.prompts import PromptTemplate
-from langchain.schema.output_parser import OutputParserException
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.output_parsers import PydanticOutputParser, StrOutputParser
-from langchain_core.runnables import RunnableConfig
+from langchain_core.runnables import RunnableConfig, RunnablePassthrough
 from langchain_core.tracers import LangChainTracer
 from langchain_core.tracers.run_collector import RunCollectorCallbackHandler
 from langsmith import Client
-from pydantic.v1.error_wrappers import ValidationError
+from streamlit_feedback import streamlit_feedback
 
 # first party
 from client import get_query_results
 from helpers import create_tabs, to_arrow_table
-from llm.prompt import intent_prompt, query_prompt, rephrase_prompt
+from llm.prompt import intent_prompt, metadata_prompt, query_prompt, rephrase_prompt
 from llm.providers import MODELS
 from schema import Query
 
@@ -76,6 +73,8 @@ Welcome to the natural language interface to your data!  Start asking questions 
 """
 )
 
+reset_history = st.sidebar.button("Reset chat history")
+
 provider_name = st.sidebar.selectbox(
     label="Select Provider",
     options=list(MODELS.keys()),
@@ -118,9 +117,10 @@ llm = init_chat_model(
     api_key=st.session_state.get("_llm_api_key", ""),
 )
 
-if len(msgs.messages) == 0:
+if len(msgs.messages) == 0 or reset_history:
     msgs.clear()
     msgs.add_ai_message("How can I help you?")
+    st.session_state.last_run = None
 
 avatars = {"human": "user", "ai": "assistant"}
 human_messages = []
@@ -140,6 +140,20 @@ for msg in msgs.messages:
 rephrase_chain = rephrase_prompt | llm | StrOutputParser()
 intent_chain = intent_prompt | llm | StrOutputParser()
 query_chain = query_prompt | llm | PydanticOutputParser(pydantic_object=Query)
+retriever = st.session_state.db.as_retriever(
+    search_type="mmr",
+    search_kwargs={
+        "k": 6,
+        "fetch_k": 20,
+        "lambda_mult": 0.6,
+    },
+)
+metadata_chain = (
+    {"context": retriever, "question": RunnablePassthrough()}
+    | metadata_prompt
+    | llm
+    | StrOutputParser()
+)
 
 if input := st.chat_input(placeholder="What is total revenue in June?"):
     if st.session_state.get("_llm_api_key", None) is None:
@@ -167,7 +181,11 @@ if input := st.chat_input(placeholder="What is total revenue in June?"):
             )
             payload = {"query": query.gql, "variables": query.variables}
             st.write("Querying semantic layer...")
-            data = get_query_results(payload, source="streamlit-llm")
+            try:
+                data = get_query_results(payload, source="streamlit-llm")
+            except Exception as e:
+                st.warning(e)
+                status.update(label="Failed", state="error")
             df = to_arrow_table(data["arrowResult"])
             df.columns = [col.lower() for col in df.columns]
             run_id = run_collector.traced_runs[0].id
@@ -176,10 +194,13 @@ if input := st.chat_input(placeholder="What is total revenue in June?"):
             setattr(st.session_state, f"compiled_sql_{run_id}", data["sql"])
         else:
             st.write("Retrieving metadata...")
-            pass
+            run_id = run_collector.traced_runs[0].id
+            content = metadata_chain.invoke(input)
+
         status.update(label="Complete!", expanded=False, state="complete")
 
     human_messages.append(HumanMessage(content=input))
+    st.session_state.last_run = run_id
 
     if intent == "query":
 
@@ -187,8 +208,32 @@ if input := st.chat_input(placeholder="What is total revenue in June?"):
         msgs.add_ai_message(
             AIMessage(
                 content=str(query),
-                additional_kwargs={"run_id": run_id, "route": "query"},
+                additional_kwargs={"run_id": run_id, "route": intent},
             )
         )
     else:
-        pass
+        st.markdown(content)
+        msgs.add_ai_message(
+            AIMessage(
+                content=content,
+                additional_kwargs={"run_id": run_id, "route": intent},
+            )
+        )
+
+if st.session_state.get("last_run"):
+    # run_url = get_run_url(st.session_state.last_run)
+    # st.sidebar.markdown(f"[Latest Trace: 🛠️]({run_url})")
+    feedback = streamlit_feedback(
+        feedback_type="thumbs",
+        optional_text_label="[Optional] Please provide an explanation",
+        key=f"feedback_{st.session_state.last_run}",
+    )
+    if feedback:
+        scores = {"👎": 0, "👍": 1}
+        client.create_feedback(
+            st.session_state.last_run,
+            feedback["type"],
+            score=scores[feedback["score"]],
+            comment=feedback.get("text", None),
+        )
+        st.toast("Feedback recorded!", icon="📝")
