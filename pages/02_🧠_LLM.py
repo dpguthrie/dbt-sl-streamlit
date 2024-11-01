@@ -53,7 +53,9 @@ def set_question():
 # Set up tracing via Lanngsmith
 langchain_endpoint = "https://api.smith.langchain.com"
 client = Client(api_url=langchain_endpoint, api_key=st.secrets["LANGCHAIN_API_KEY"])
-ls_tracer = LangChainTracer(project_name="default", client=client)
+ls_tracer = LangChainTracer(
+    project_name=st.secrets.get("LANGCHAIN_PROJECT", "default"), client=client
+)
 run_collector = RunCollectorCallbackHandler()
 cfg = RunnableConfig()
 cfg["callbacks"] = [ls_tracer, run_collector]
@@ -92,6 +94,13 @@ model_name = st.sidebar.selectbox(
     options=MODEL_OPTIONS,
     index=DEFAULT_MODEL_INDEX,
 )
+
+cfg["metadata"] = {
+    "environment_id": st.session_state.conn.params["environmentid"],
+    "host": st.session_state.conn.host,
+    "provider_name": provider_name,
+    "model_name": model_name,
+}
 
 MODEL_INFO = MODELS[provider_name][model_name]
 st.sidebar.markdown(
@@ -164,10 +173,14 @@ if input := st.chat_input(placeholder="What is total revenue in June?"):
     with st.status("Thinking...", expanded=True) as status:
         st.write("Rephrasing question ... ")
         question = rephrase_chain.invoke(
-            {"chat_history": human_messages, "input": input}, cfg
+            {"chat_history": human_messages, "input": input},
+            {**cfg, "run_name": "Rephrase"},
         )
         st.write("Determining intent...")
-        intent = intent_chain.invoke({"question": question}, cfg)
+        intent = intent_chain.invoke(
+            {"question": question},
+            {**cfg, "run_name": "Intent"},
+        )
         if intent == "query":
             st.write("Creating semantic layer request...")
             query = query_chain.invoke(
@@ -178,7 +191,7 @@ if input := st.chat_input(placeholder="What is total revenue in June?"):
                     ),
                     "question": question,
                 },
-                cfg,
+                {**cfg, "run_name": "SL Query"},
             )
             payload = {"query": query.gql, "variables": query.variables}
             st.write("Querying semantic layer...")
@@ -196,7 +209,7 @@ if input := st.chat_input(placeholder="What is total revenue in June?"):
             setattr(st.session_state, f"compiled_sql_{run_id}", data["sql"])
         else:
             st.write("Retrieving metadata...")
-            content = metadata_chain.invoke(input, cfg)
+            content = metadata_chain.invoke(input, {**cfg, "run_name": "Metadata"})
             run_id = run_collector.traced_runs[0].id
 
         status.update(label="Complete!", expanded=False, state="complete")
