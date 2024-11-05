@@ -4,7 +4,22 @@ Use this streamlit app to view the metrics you've defined in your project.  The 
 
 # Developing
 
-Clone the repo and run `poetry install`.  Activate the virtualenv created by running `poetry shell`
+1. Clone the repo
+2. Create virtual environment
+```bash
+python -m venv .venv
+```
+3. Install dependencies
+
+- via `uv` (recommended)
+```bash
+pip install uv && uv pip install -r requirements.txt
+```
+- via `pip`
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
 Finally, run your app:
 
