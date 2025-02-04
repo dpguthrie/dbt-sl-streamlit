@@ -41,13 +41,13 @@ MODELS = {
             "context_window": 128000,
             "cost_input": "$5.00 / 1M tokens",
             "cost_output": "$5.00 / 1M tokens",
+            "default": True,
         },
         "gpt-4o-mini": {
             "description": "Affordable and intelligent small model for fast, lightweight tasks",
             "context_window": 128000,
             "cost_input": "$0.15 / 1M tokens",
             "cost_output": "$0.15 / 1M tokens",
-            "default": True,
         },
         "gpt-4-turbo-preview": {
             "description": "Most capable GPT-4 model, optimized for speed",
