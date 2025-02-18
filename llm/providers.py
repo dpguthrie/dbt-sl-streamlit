@@ -129,13 +129,7 @@ MODELS = {
         },
     },
     "groq": {
-        "llama-3.1-405b-reasoning": {
-            "description": "The Llama 3.1 instruction tuned text only models (8B, 70B, 405B) are optimized for multilingual dialogue use cases and outperform many of the available open source and closed chat models on common industry benchmarks.  **Currently, this model is limited only to paying customers.**",
-            "context_window": 131702,
-            "cost_input": "N/A",
-            "cost_output": "N/A",
-        },
-        "llama-3.1-70b-versatile": {
+        "llama-3.3-70b-versatile": {
             "description": "The Llama 3.1 instruction tuned text only models (8B, 70B, 405B) are optimized for multilingual dialogue use cases and outperform many of the available open source and closed chat models on common industry benchmarks.",
             "context_window": 131702,
             "cost_input": "N/A",
