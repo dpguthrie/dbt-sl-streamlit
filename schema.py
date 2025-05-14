@@ -31,6 +31,7 @@ GQL_MAP: Dict = {
 
 
 class TimeGranularity(str, Enum):
+    hour = "HOUR"
     day = "DAY"
     week = "WEEK"
     month = "MONTH"
