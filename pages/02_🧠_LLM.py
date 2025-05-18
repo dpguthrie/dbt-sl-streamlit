@@ -52,10 +52,16 @@ def set_question():
 
 # Set up tracing via Lanngsmith
 langchain_endpoint = "https://api.smith.langchain.com"
-client = Client(api_url=langchain_endpoint, api_key=st.secrets["LANGCHAIN_API_KEY"])
-ls_tracer = LangChainTracer(
-    project_name=st.secrets.get("LANGCHAIN_PROJECT", "default"), client=client
-)
+
+# Only leverage tracing if the API key is available
+if "LANGCHAIN_API_KEY" in st.secrets:
+    client = Client(api_url=langchain_endpoint, api_key=st.secrets["LANGCHAIN_API_KEY"])
+    ls_tracer = LangChainTracer(
+        project_name=st.secrets.get("LANGCHAIN_PROJECT", "default"), client=client
+    )
+else:
+    pass
+
 run_collector = RunCollectorCallbackHandler()
 cfg = RunnableConfig()
 cfg["callbacks"] = [ls_tracer, run_collector]

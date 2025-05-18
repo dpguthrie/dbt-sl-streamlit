@@ -20,6 +20,11 @@ pip install uv && uv pip install -r requirements.txt
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+4. Populate environment variables
+- rename the `secrets.toml.example` file in the `.streamlit` folder to `secrets.toml`.
+- populate your OpenAI API key
+- (Optional) Update the JDBC URL for your instance.
+  - Note: this is only necessary for the Embedded page. Since this page has hard coded logic, it's likely you won't need to use this field.
 
 Finally, run your app:
 
