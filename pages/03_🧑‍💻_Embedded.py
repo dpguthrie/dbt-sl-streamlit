@@ -68,9 +68,9 @@ def retrieve_data(
     with semantic_layer_client.session():
         table = semantic_layer_client.query(
             metrics=metrics,
-            group_by=group_by,
+            group_by=group_by or [],
             where=where,
-            order_by=order_by,
+            order_by=order_by or [],
             limit=limit,
         )
 
