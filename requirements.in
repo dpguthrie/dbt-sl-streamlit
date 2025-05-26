@@ -14,3 +14,5 @@ langsmith
 langchain-community~=0.3
 faiss-cpu
 streamlit-feedback
+braintrust
+braintrust-langchain

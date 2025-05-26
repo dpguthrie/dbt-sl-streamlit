@@ -1,13 +1,15 @@
+# stdlib
+import os
+
 # third party
 import streamlit as st
+from braintrust import init_logger
+from braintrust_langchain import BraintrustCallbackHandler, set_global_handler
 from langchain.chat_models import init_chat_model
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.output_parsers import PydanticOutputParser, StrOutputParser
-from langchain_core.runnables import RunnableConfig, RunnablePassthrough
-from langchain_core.tracers import LangChainTracer
-from langchain_core.tracers.run_collector import RunCollectorCallbackHandler
-from langsmith import Client
+from langchain_core.runnables import RunnablePassthrough
 from streamlit_feedback import streamlit_feedback
 
 # first party
@@ -22,6 +24,11 @@ st.set_page_config(
     page_icon="🌌",
     layout="wide",
 )
+
+# Initialize Braintrust logger and handler
+logger = init_logger(project="Conversational Analytics", api_key=os.environ.get("BRAINTRUST_API_KEY"))
+handler = BraintrustCallbackHandler()
+set_global_handler(handler)
 
 
 if "conn" not in st.session_state or st.session_state.conn is None:
@@ -48,17 +55,6 @@ def set_question():
     previous_question = st.session_state.get("_question", None)
     st.session_state._question = st.session_state.question
     st.session_state.refresh = not previous_question == st.session_state._question
-
-
-# Set up tracing via Lanngsmith
-langchain_endpoint = "https://api.smith.langchain.com"
-client = Client(api_url=langchain_endpoint, api_key=st.secrets["LANGCHAIN_API_KEY"])
-ls_tracer = LangChainTracer(
-    project_name=st.secrets.get("LANGCHAIN_PROJECT", "default"), client=client
-)
-run_collector = RunCollectorCallbackHandler()
-cfg = RunnableConfig()
-cfg["callbacks"] = [ls_tracer, run_collector]
 
 # Initialize Streamlit Chat Message History
 msgs = StreamlitChatMessageHistory(key="messages")
@@ -95,7 +91,7 @@ model_name = st.sidebar.selectbox(
     index=DEFAULT_MODEL_INDEX,
 )
 
-cfg["metadata"] = {
+metadata = {
     "environment_id": st.session_state.conn.params["environmentid"],
     "host": st.session_state.conn.host,
     "provider_name": provider_name,
@@ -146,9 +142,25 @@ for msg in msgs.messages:
         else:
             st.chat_message(avatars[msg.type]).write(msg.content)
 
-rephrase_chain = rephrase_prompt | llm | StrOutputParser()
-intent_chain = intent_prompt | llm | StrOutputParser()
-query_chain = query_prompt | llm | PydanticOutputParser(pydantic_object=Query)
+# Create chains with custom names
+rephrase_chain = (
+    rephrase_prompt.with_config({"run_name": "Rephrase Prompt"}) 
+    | llm.with_config({"run_name": "Rephrase LLM Call"}) 
+    | StrOutputParser().with_config({"run_name": "Parse Rephrase Response"})
+).with_config({"run_name": "Rephrase User Question"})
+
+intent_chain = (
+    intent_prompt.with_config({"run_name": "Intent Prompt"}) 
+    | llm.with_config({"run_name": "Intent Classification LLM"}) 
+    | StrOutputParser().with_config({"run_name": "Parse Intent Response"})
+).with_config({"run_name": "Classify Intent"})
+
+query_chain = (
+    query_prompt.with_config({"run_name": "Query Generation Prompt"}) 
+    | llm.with_config({"run_name": "Query Generation LLM"}) 
+    | PydanticOutputParser(pydantic_object=Query).with_config({"run_name": "Parse GraphQL Query"})
+).with_config({"run_name": "Generate GraphQL Query"})
+
 retriever = st.session_state.db.as_retriever(
     search_type="mmr",
     search_kwargs={
@@ -156,13 +168,14 @@ retriever = st.session_state.db.as_retriever(
         "fetch_k": 20,
         "lambda_mult": 0.6,
     },
-)
+).with_config({"run_name": "Retrieve Semantic Layer Metadata"})
+
 metadata_chain = (
     {"context": retriever, "question": RunnablePassthrough()}
-    | metadata_prompt
-    | llm
-    | StrOutputParser()
-)
+    | metadata_prompt.with_config({"run_name": "Metadata Prompt"})
+    | llm.with_config({"run_name": "Metadata Generation LLM"})
+    | StrOutputParser().with_config({"run_name": "Parse Metadata Response"})
+).with_config({"run_name": "Generate Metadata Response"})
 
 if input := st.chat_input(placeholder="What is total revenue in June?"):
     if st.session_state.get("_llm_api_key", None) is None:
@@ -170,55 +183,110 @@ if input := st.chat_input(placeholder="What is total revenue in June?"):
         st.stop()
 
     msgs.add_user_message(input)
-    with st.status("Thinking...", expanded=True) as status:
-        st.write("Rephrasing question ... ")
-        question = rephrase_chain.invoke(
-            {"chat_history": human_messages, "input": input},
-            {**cfg, "run_name": "Rephrase"},
-        )
-        st.write("Determining intent...")
-        intent = intent_chain.invoke(
-            {"question": question},
-            {**cfg, "run_name": "Intent"},
-        )
-        if intent == "query":
-            st.write("Creating semantic layer request...")
-            query = query_chain.invoke(
-                {
-                    "metrics": ", ".join(list(st.session_state.metric_dict.keys())),
-                    "dimensions": ", ".join(
-                        list(st.session_state.dimension_dict.keys())
-                    ),
-                    "question": question,
-                },
-                {**cfg, "run_name": "SL Query"},
-            )
-            payload = {"query": query.gql, "variables": query.variables}
-            st.write("Querying semantic layer...")
-            try:
-                data = get_query_results(payload, source="streamlit-llm")
-            except Exception as e:
-                st.warning(e)
-                status.update(label="Failed", state="error")
-                st.stop()
-            df = to_arrow_table(data["arrowResult"])
-            df.columns = [col.lower() for col in df.columns]
-            run_id = run_collector.traced_runs[0].id
-            setattr(st.session_state, f"query_{run_id}", query)
-            setattr(st.session_state, f"df_{run_id}", df)
-            setattr(st.session_state, f"compiled_sql_{run_id}", data["sql"])
-        else:
-            st.write("Retrieving metadata...")
-            content = metadata_chain.invoke(input, {**cfg, "run_name": "Metadata"})
-            run_id = run_collector.traced_runs[0].id
+    
+    # Start a single trace for the entire conversation
+    with logger.start_span(name="Conversational Analytics", type="task") as conversation_span:
+        conversation_span.log(input={"input": input, "chat_history": human_messages})
+        
+        with st.status("Thinking...", expanded=True) as status:
+            # Step 1: Rephrase question
+            with conversation_span.start_span(name="Rephrase Question", type="llm") as rephrase_span:
+                st.write("Rephrasing question ... ")
+                rephrase_span.log(input={"chat_history": human_messages, "input": input})
+                question = rephrase_chain.invoke(
+                    {"chat_history": human_messages, "input": input},
+                    config={"run_name": "Rephrase User Question"}
+                )
+                rephrase_span.log(output=question)
+            
+            # Step 2: Determine intent
+            with conversation_span.start_span(name="Determine Intent", type="llm") as intent_span:
+                st.write("Determining intent...")
+                intent_span.log(input={"question": question})
+                intent = intent_chain.invoke(
+                    {"question": question},
+                    config={"run_name": "Classify Intent"}
+                )
+                intent_span.log(output=intent)
+            
+            if intent == "query":
+                # Step 3a: Generate semantic layer query
+                with conversation_span.start_span(name="Generate SL Query", type="llm") as query_span:
+                    st.write("Creating semantic layer request...")
+                    query_input = {
+                        "metrics": ", ".join(list(st.session_state.metric_dict.keys())),
+                        "dimensions": ", ".join(
+                            list(st.session_state.dimension_dict.keys())
+                        ),
+                        "question": question,
+                    }
+                    query_span.log(input=query_input)
+                    query = query_chain.invoke(
+                        query_input, 
+                        config={"run_name": "Generate GraphQL Query"}
+                    )
+                    query_span.log(output=query.model_dump())
+                
+                # Step 3b: Execute semantic layer query
+                with conversation_span.start_span(name="Execute SL Query", type="function") as execute_span:
+                    payload = {"query": query.gql, "variables": query.variables}
+                    execute_span.log(input=payload)
+                    st.write("Querying semantic layer...")
+                    try:
+                        data = get_query_results(payload, source="streamlit-llm")
+                        execute_span.log(
+                            output={"sql": data["sql"], "row_count": len(data.get("arrowResult", []))},
+                            metadata={"source": "streamlit-llm"}
+                        )
+                    except Exception as e:
+                        execute_span.log(error=str(e))
+                        st.warning(e)
+                        status.update(label="Failed", state="error")
+                        st.stop()
+                
+                df = to_arrow_table(data["arrowResult"])
+                df.columns = [col.lower() for col in df.columns]
+                run_id = conversation_span.id
+                setattr(st.session_state, f"query_{run_id}", query)
+                setattr(st.session_state, f"df_{run_id}", df)
+                setattr(st.session_state, f"compiled_sql_{run_id}", data["sql"])
+                conversation_span.log(
+                    output=query.model_dump(),
+                    metadata={
+                        "intent": intent,
+                        "rephrased_question": question,
+                        "chat_history": human_messages,
+                        **metadata,
+                    }
+                )
+            else:
+                # Step 3: Retrieve metadata
+                with conversation_span.start_span(name="Retrieve Metadata", type="llm") as metadata_span:
+                    st.write("Retrieving metadata...")
+                    metadata_span.log(input=input)
+                    content = metadata_chain.invoke(
+                        input, 
+                        config={"run_name": "Generate Metadata Response"}
+                    )
+                    metadata_span.log(output=content)
+                
+                run_id = conversation_span.id
+                conversation_span.log(
+                    output=content, 
+                    metadata={
+                        "intent": intent,
+                        "rephrased_question": question,
+                        "chat_history": human_messages,
+                        **metadata,
+                    }
+                )
 
-        status.update(label="Complete!", expanded=False, state="complete")
+            status.update(label="Complete!", expanded=False, state="complete")
 
     human_messages.append(HumanMessage(content=input))
     st.session_state.last_run = run_id
 
     if intent == "query":
-
         create_tabs(st.session_state, run_id)
         msgs.add_ai_message(
             AIMessage(
@@ -236,8 +304,6 @@ if input := st.chat_input(placeholder="What is total revenue in June?"):
         )
 
 if st.session_state.get("last_run"):
-    # run_url = get_run_url(st.session_state.last_run)
-    # st.sidebar.markdown(f"[Latest Trace: 🛠️]({run_url})")
     feedback = streamlit_feedback(
         feedback_type="thumbs",
         optional_text_label="[Optional] Please provide an explanation",
@@ -245,10 +311,20 @@ if st.session_state.get("last_run"):
     )
     if feedback:
         scores = {"👎": 0, "👍": 1}
-        client.create_feedback(
-            st.session_state.last_run,
-            feedback["type"],
-            score=scores[feedback["score"]],
-            comment=feedback.get("text", None),
+        score_value = scores[feedback["score"]]
+        comment_text = feedback.get("text", None)
+        
+        # Build tags based on conditions
+        tags = []
+        if score_value == 0:
+            tags.append("Triage")
+        if comment_text and comment_text.strip():
+            tags.append("User Comment")
+        
+        logger.log_feedback(
+            id=str(st.session_state.last_run),
+            scores={"user_feedback": score_value},
+            comment=comment_text,
+            tags=tags,
         )
         st.toast("Feedback recorded!", icon="📝")
